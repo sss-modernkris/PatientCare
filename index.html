@@ -1,0 +1,256 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sakkubhai - Patient Care Log & Tracker</title>
+    <!-- Modern typography -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <!-- Main soothing background wrapper -->
+    <div class="app-container">
+        
+        <!-- Header area -->
+        <header class="dashboard-header">
+            <div class="header-main">
+                <div class="title-section">
+                    <span class="patient-badge">ICU Care Mode</span>
+                    <h1>Sakkubhai</h1>
+                    <p class="subtitle">Daily Nursing Record & Care tracker</p>
+                </div>
+                <!-- Caregiver initials configuration -->
+                <div class="caregiver-config card">
+                    <label for="global-caregiver">Active Nurse Initials</label>
+                    <input type="text" id="global-caregiver" placeholder="e.g. Ramya" maxlength="10">
+                </div>
+            </div>
+            
+            <!-- Progress bar section -->
+            <div class="progress-section card">
+                <div class="progress-info">
+                    <span class="progress-label">Today's Daily Tasks Completed</span>
+                    <span id="progress-percentage" class="progress-value">0%</span>
+                </div>
+                <div class="progress-track">
+                    <div id="progress-fill" class="progress-bar" style="width: 0%;"></div>
+                </div>
+                <div class="progress-stats">
+                    <span id="task-completed-count">0 of 0 tasks completed</span>
+                    <span id="current-time-display" class="font-mono text-xs">11:00 AM</span>
+                </div>
+            </div>
+        </header>
+
+        <!-- Navigation Tabs -->
+        <nav class="navigation-tabs">
+            <button id="tab-today" class="tab-button active">Today's Care Plan</button>
+            <button id="tab-history" class="tab-button">Caregiver History Logs</button>
+        </nav>
+
+        <!-- Main dashboard content panels -->
+        <main class="dashboard-body">
+            
+            <!-- PLAN/TODAY TAB -->
+            <div id="panel-today" class="tab-panel active">
+                <div class="plan-grid">
+                    
+                    <!-- MEDICATIONS PANEL -->
+                    <section class="plan-section card">
+                        <div class="section-header">
+                            <div class="icon-wrap pill-icon"></div>
+                            <h2>Medications (Tablets & Syrups)</h2>
+                        </div>
+                        <div id="list-medications" class="task-list">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </section>
+
+                    <!-- DIET & MEALS PANEL -->
+                    <section class="plan-section card">
+                        <div class="section-header">
+                            <div class="icon-wrap diet-icon"></div>
+                            <h2>Diet, Meals & Nutrition</h2>
+                        </div>
+                        <div id="list-diet" class="task-list">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </section>
+
+                    <!-- SERVICES & VITALS PANEL -->
+                    <section class="plan-section card">
+                        <div class="section-header">
+                            <div class="icon-wrap vitals-icon"></div>
+                            <h2>Daily Care Services & Vitals</h2>
+                        </div>
+                        <div id="list-services" class="task-list">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </section>
+                </div>
+            </div>
+
+            <!-- HISTORY TAB -->
+            <div id="panel-history" class="tab-panel">
+                <div class="history-controls card">
+                    <h2>Patient Medical CSV Logs</h2>
+                    <p class="subtitle">Complete historical logs exported to <code>daily_medical_logs.csv</code></p>
+                </div>
+                <div class="table-wrap card">
+                    <table class="history-table">
+                        <thead>
+                            <tr>
+                                <th>Date</th>
+                                <th>Scheduled</th>
+                                <th>Logged Time</th>
+                                <th>Category</th>
+                                <th>Activity</th>
+                                <th>Logged Value</th>
+                                <th>Notes / Status</th>
+                                <th>Nurse</th>
+                            </tr>
+                        </thead>
+                        <tbody id="history-table-body">
+                            <!-- CSV logs dynamically rendered -->
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- MODAL 1: Standard Activity Modal -->
+    <div id="modal-standard" class="modal-overlay">
+        <div class="modal-card card animate-in">
+            <div class="modal-header">
+                <h3 id="modal-title">Log Activity</h3>
+                <button class="close-button" onclick="closeModal('modal-standard')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label>Activity Category</label>
+                    <input type="text" id="modal-category" readonly class="readonly-input">
+                </div>
+                <div class="form-group">
+                    <label>Activity Name</label>
+                    <input type="text" id="modal-activity-name" readonly class="readonly-input">
+                </div>
+                <div class="form-group">
+                    <label>Scheduled Time</label>
+                    <input type="text" id="modal-scheduled-time" readonly class="readonly-input">
+                </div>
+                <div class="form-group">
+                    <label for="modal-notes">Caregiver Notes / Remarks</label>
+                    <textarea id="modal-notes" placeholder="e.g. Patient took with warm water, or Held by Doctor"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="modal-initials">Caregiver Signature Initials *</label>
+                    <input type="text" id="modal-initials" placeholder="Initials required" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-standard')">Cancel</button>
+                <button id="btn-submit-standard" class="btn btn-primary">Mark as Completed</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Vitals Log Modal -->
+    <div id="modal-vitals" class="modal-overlay">
+        <div class="modal-card card animate-in">
+            <div class="modal-header">
+                <h3>Log Clinical Vitals</h3>
+                <button class="close-button" onclick="closeModal('modal-vitals')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="vitals-scheduled-time">
+                <div class="vitals-grid">
+                    <div class="form-group">
+                        <label for="vital-bp">Blood Pressure (mmHg)</label>
+                        <input type="text" id="vital-bp" placeholder="e.g. 120/80">
+                    </div>
+                    <div class="form-group">
+                        <label for="vital-pulse">Pulse Rate (bpm)</label>
+                        <input type="number" id="vital-pulse" placeholder="e.g. 72">
+                    </div>
+                    <div class="form-group">
+                        <label for="vital-spo2">SpO2 Percentage (%)</label>
+                        <input type="number" id="vital-spo2" placeholder="e.g. 98">
+                    </div>
+                    <div class="form-group">
+                        <label for="vital-temp">Temperature (&deg;F)</label>
+                        <input type="text" id="vital-temp" placeholder="e.g. 98.6">
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="vital-sounds">Heart/Lung Sounds</label>
+                    <select id="vital-sounds">
+                        <option value="Normal">Normal / Clear</option>
+                        <option value="Wheezing">Wheezing Sounds</option>
+                        <option value="Crackles">Crackles Sounds</option>
+                        <option value="Diminished">Diminished Sounds</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label for="vital-notes">Additional Remarks</label>
+                    <textarea id="vital-notes" placeholder="e.g. Nebulizer administered right after"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="vital-initials">Caregiver Signature Initials *</label>
+                    <input type="text" id="vital-initials" placeholder="Initials required" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-vitals')">Cancel</button>
+                <button id="btn-submit-vitals" class="btn btn-primary">Save Vitals & Complete</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 3: Meal Log Modal -->
+    <div id="modal-meal" class="modal-overlay">
+        <div class="modal-card card animate-in">
+            <div class="modal-header">
+                <h3>Log Meal & Nutrition Intake</h3>
+                <button class="close-button" onclick="closeModal('modal-meal')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <input type="hidden" id="meal-activity-name">
+                <input type="hidden" id="meal-scheduled-time">
+                
+                <div class="form-group">
+                    <label>Meal Satisfaction Rating</label>
+                    <div class="satisfaction-picker">
+                        <button type="button" class="sat-btn" data-value="Good">
+                            <span class="emoji">🟢</span> Good
+                        </button>
+                        <button type="button" class="sat-btn" data-value="OK">
+                            <span class="emoji">🟡</span> OK
+                        </button>
+                        <button type="button" class="sat-btn" data-value="Bad">
+                            <span class="emoji">🔴</span> Bad
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="meal-notes">Intake Details / Caregiver Remarks</label>
+                    <textarea id="meal-notes" placeholder="e.g. Ate full bowl of porridge, sweet omitted due to sugar levels"></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="meal-initials">Caregiver Signature Initials *</label>
+                    <input type="text" id="meal-initials" placeholder="Initials required" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-meal')">Cancel</button>
+                <button id="btn-submit-meal" class="btn btn-primary">Save Meal Log</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Notification Sound Synthesizer Element -->
+    <div class="hidden-alert-trigger"></div>
+    <script src="app.js"></script>
+</body>
+</html>
