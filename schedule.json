@@ -1,0 +1,152 @@
+[
+  {
+    "category": "Medication (TAB)",
+    "activity": "PAN -40-MG",
+    "time": "07:00 AM"
+  },
+  {
+    "category": "Medication (TAB)",
+    "activity": "THYRONORM - 100MCG",
+    "time": "07:00 AM"
+  },
+  {
+    "category": "Medication (TAB)",
+    "activity": "CLOMONT-AD",
+    "time": "08:00 AM"
+  },
+  {
+    "category": "Medication (TAB)",
+    "activity": "Doxyclock",
+    "time": "08:00 AM"
+  },
+  {
+    "category": "Medication (TAB)",
+    "activity": "Acetnama Syrup",
+    "time": "08:00 AM"
+  },
+  {
+    "category": "Medication (TAB)",
+    "activity": "MYNU-CT",
+    "time": "10:00 AM"
+  },
+  {
+    "category": "Medication (TAB)",
+    "activity": "IVABRADINE-5",
+    "time": "10:00 AM"
+  },
+  {
+    "category": "Medication (TAB)",
+    "activity": "DYPORYLUS",
+    "time": "10:00 AM"
+  },
+  {
+    "category": "Medication (TAB)",
+    "activity": "Atoz - CU",
+    "time": "02:00 PM"
+  },
+  {
+    "category": "Medication (TAB)",
+    "activity": "DYTOR-5",
+    "time": "04:00 PM"
+  },
+  {
+    "category": "Medication (TAB)",
+    "activity": "PREGABAN-5",
+    "time": "02:00 PM"
+  },
+  {
+    "category": "Medication (TAB)",
+    "activity": "CLOLIFE",
+    "time": "02:00 PM"
+  },
+  {
+    "category": "Medication (TAB)",
+    "activity": "CLOMONT-AD",
+    "time": "07:43 PM"
+  },
+  {
+    "category": "Medication (TAB)",
+    "activity": "ATORFIT-AD",
+    "time": "08:00 PM"
+  },
+  {
+    "category": "Medication (TAB)",
+    "activity": "Doxyclock",
+    "time": "08:00 PM"
+  },
+  {
+    "category": "Medication (TAB)",
+    "activity": "Acetnama Syrup",
+    "time": "08:00 PM"
+  },
+  {
+    "category": "Diet & Meals",
+    "activity": "Tea & Biscuits",
+    "time": "08:00 AM"
+  },
+  {
+    "category": "Diet & Meals",
+    "activity": "Breakfast",
+    "time": "09:30 AM"
+  },
+  {
+    "category": "Diet & Meals",
+    "activity": "Lunch + Sweet",
+    "time": "12:30 PM"
+  },
+  {
+    "category": "Diet & Meals",
+    "activity": "Tea & Biscuits",
+    "time": "05:30 PM"
+  },
+  {
+    "category": "Diet & Meals",
+    "activity": "Dinner",
+    "time": "08:30 PM"
+  },
+  {
+    "category": "Services & Daily Care Vitals",
+    "activity": "Bath / Teeth Brushing / Hair Combing",
+    "time": "09:00 AM"
+  },
+  {
+    "category": "Services & Daily Care Vitals",
+    "activity": "Clothes Change",
+    "time": "10:00 AM"
+  },
+  {
+    "category": "Services & Daily Care Vitals",
+    "activity": "Exercises",
+    "time": "09:00 AM"
+  },
+  {
+    "category": "Services & Daily Care Vitals",
+    "activity": "PM Spirometry",
+    "time": "09:00 PM"
+  },
+  {
+    "category": "Services & Daily Care Vitals",
+    "activity": "Chest Physio",
+    "time": "10:00 PM"
+  },
+  {
+    "category": "Services & Daily Care Vitals",
+    "activity": "Massage / Nebulizer",
+    "time": "Flexible"
+  },
+  {
+    "category": "Services & Daily Care Vitals",
+    "activity": "Vitals Check: BP / Pulse / SpO2 / Temperature / Heart/Lung Sounds",
+    "time": "08:00 AM"
+  },
+  {
+    "category": "Services & Daily Care Vitals",
+    "activity": "Exercises",
+    "time": "08:00 PM"
+  },
+  {
+    "category": "Services & Daily Care Vitals",
+    "activity": "Vitals Check: BP / Pulse / SpO2 / Temperature / Heart/Lung Sounds",
+    "time": "05:00 PM"
+  }
+]

@@ -17,13 +17,25 @@
             <div class="header-main">
                 <div class="title-section">
                     <span class="patient-badge">ICU Care Mode</span>
-                    <h1>Sakkubhai</h1>
+                    <h1 id="patient-name-title">Sakkubhai</h1>
                     <p class="subtitle">Daily Nursing Record & Care tracker</p>
                 </div>
                 <!-- Caregiver initials configuration -->
                 <div class="caregiver-config card">
                     <label for="global-caregiver">Active Nurse Initials</label>
                     <input type="text" id="global-caregiver" placeholder="e.g. Ramya" maxlength="10">
+                </div>
+                <!-- Sync schedule actions -->
+                <div class="sync-actions card">
+                    <button id="btn-sync-schedule" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="sync-icon">🔄</span> Sync Schedule from CSV Files
+                    </button>
+                </div>
+                <!-- Special Notes Actions -->
+                <div class="special-note-actions card">
+                    <button id="btn-add-special-notes" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="note-icon">📝</span> Enter Special Notes
+                    </button>
                 </div>
             </div>
             
@@ -100,15 +112,55 @@
                 <div class="table-wrap card">
                     <table class="history-table">
                         <thead>
-                            <tr>
-                                <th>Date</th>
-                                <th>Scheduled</th>
-                                <th>Logged Time</th>
-                                <th>Category</th>
-                                <th>Activity</th>
-                                <th>Logged Value</th>
-                                <th>Notes / Status</th>
-                                <th>Nurse</th>
+                            <tr id="history-table-headers">
+                                <th data-col="Date">
+                                    <div class="th-content">
+                                        <span>Date</span>
+                                        <span class="filter-trigger" title="Filter Date">▼</span>
+                                    </div>
+                                </th>
+                                <th data-col="Scheduled_Time">
+                                    <div class="th-content">
+                                        <span>Scheduled</span>
+                                        <span class="filter-trigger" title="Filter Scheduled">▼</span>
+                                    </div>
+                                </th>
+                                <th data-col="Actual_Logged_Time">
+                                    <div class="th-content">
+                                        <span>Logged Time</span>
+                                        <span class="filter-trigger" title="Filter Logged Time">▼</span>
+                                    </div>
+                                </th>
+                                <th data-col="Category">
+                                    <div class="th-content">
+                                        <span>Category</span>
+                                        <span class="filter-trigger" title="Filter Category">▼</span>
+                                    </div>
+                                </th>
+                                <th data-col="Activity_Name">
+                                    <div class="th-content">
+                                        <span>Activity</span>
+                                        <span class="filter-trigger" title="Filter Activity">▼</span>
+                                    </div>
+                                </th>
+                                <th data-col="Logged_Data_Value">
+                                    <div class="th-content">
+                                        <span>Logged Value</span>
+                                        <span class="filter-trigger" title="Filter Logged Value">▼</span>
+                                    </div>
+                                </th>
+                                <th data-col="Notes_or_Status">
+                                    <div class="th-content">
+                                        <span>Notes / Status</span>
+                                        <span class="filter-trigger" title="Filter Notes">▼</span>
+                                    </div>
+                                </th>
+                                <th data-col="Caregiver_Initials">
+                                    <div class="th-content">
+                                        <span>Nurse</span>
+                                        <span class="filter-trigger" title="Filter Nurse">▼</span>
+                                    </div>
+                                </th>
                             </tr>
                         </thead>
                         <tbody id="history-table-body">
@@ -245,6 +297,51 @@
             <div class="modal-footer">
                 <button class="btn btn-secondary" onclick="closeModal('modal-meal')">Cancel</button>
                 <button id="btn-submit-meal" class="btn btn-primary">Save Meal Log</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 4: Special Note Modal -->
+    <div id="modal-special-note" class="modal-overlay">
+        <div class="modal-card card animate-in">
+            <div class="modal-header">
+                <h3>Enter Special Note</h3>
+                <button class="close-button" onclick="closeModal('modal-special-note')">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="special-note-text">Special Note / Remarks *</label>
+                    <textarea id="special-note-text" placeholder="Enter special clinical observation, doctor's advice, or nursing log detail..." required></textarea>
+                </div>
+                <div class="form-group">
+                    <label for="special-note-initials">Caregiver Signature Initials *</label>
+                    <input type="text" id="special-note-initials" placeholder="Initials required" required>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn btn-secondary" onclick="closeModal('modal-special-note')">Cancel</button>
+                <button id="btn-submit-special-note" class="btn btn-primary">Save Special Note</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Floating Filter Popover for Excel-like column filtering -->
+    <div id="filter-popover" class="filter-popover card">
+        <div class="filter-popover-header">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                <strong id="filter-col-name" style="font-size: 0.85rem; font-family: var(--font-outfit);">Filter Column</strong>
+                <span class="filter-close-btn" style="cursor: pointer; font-size: 1.2rem; line-height: 1; color: var(--text-secondary);">&times;</span>
+            </div>
+            <input type="text" id="filter-search" placeholder="Search values..." style="width: 100%; padding: 0.4rem 0.6rem; font-size: 0.8rem; border-radius: 6px; border: 1px solid #C4D3CB; outline: none; margin-bottom: 0.5rem;">
+        </div>
+        <div class="filter-options-list" id="filter-options-list" style="max-height: 180px; overflow-y: auto; display: flex; flex-direction: column; gap: 0.4rem; padding: 0.2rem 0; margin-bottom: 0.8rem;">
+            <!-- Checkboxes generated dynamically -->
+        </div>
+        <div class="filter-popover-actions" style="display: flex; justify-content: space-between; gap: 0.5rem; border-top: 1px solid #E8EFEA; padding-top: 0.6rem;">
+            <button id="btn-filter-clear" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 6px;">Clear</button>
+            <div style="display: flex; gap: 0.35rem;">
+                <button id="btn-filter-cancel" class="btn btn-secondary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 6px;">Cancel</button>
+                <button id="btn-filter-apply" class="btn btn-primary" style="padding: 0.35rem 0.75rem; font-size: 0.8rem; border-radius: 6px;">Apply</button>
             </div>
         </div>
     </div>

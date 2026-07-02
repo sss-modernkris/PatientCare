@@ -5,6 +5,7 @@ from pydantic import BaseModel
 from typing import List, Optional
 import csv
 import os
+import json
 from datetime import datetime
 
 app = FastAPI(title="Daily Patient Care Log API")
@@ -21,6 +22,7 @@ app.add_middleware(
 # Paths
 DIR_PATH = os.path.dirname(os.path.abspath(__file__))
 CSV_FILE_PATH = os.path.join(DIR_PATH, "daily_medical_logs.csv")
+SCHEDULE_JSON_PATH = os.path.join(DIR_PATH, "schedule.json")
 
 # Baseline Schedule Dataset
 SCHEDULE_DATA = [
@@ -61,6 +63,35 @@ SCHEDULE_DATA = [
     {"category": "Services & Daily Care Vitals", "activity": "Vitals Check: BP, Pulse, SpO2, Temp, Heart/Lung Sounds", "time": "05:00 PM"},
 ]
 
+current_schedule = []
+
+def normalize_time(time_str: str) -> str:
+    time_str = time_str.strip()
+    if not time_str:
+        return ""
+    if "flexible" in time_str.lower():
+        return "Flexible"
+    for fmt in ("%I:%M:%S %p", "%I:%M %p", "%H:%M:%S", "%H:%M", "%I:%M%p"):
+        try:
+            dt = datetime.strptime(time_str, fmt)
+            return dt.strftime("%I:%M %p")
+        except ValueError:
+            continue
+    return time_str
+
+def load_local_schedule():
+    global current_schedule
+    if os.path.exists(SCHEDULE_JSON_PATH):
+        try:
+            with open(SCHEDULE_JSON_PATH, "r", encoding="utf-8") as f:
+                current_schedule = json.load(f)
+                print(f"Loaded {len(current_schedule)} items from schedule.json")
+                return
+        except Exception as e:
+            print(f"Error loading schedule.json: {e}")
+    # Fallback
+    current_schedule = list(SCHEDULE_DATA)
+
 # Pydantic models for request bodies
 class CareLogRequest(BaseModel):
     date: str
@@ -85,6 +116,7 @@ def init_csv():
 @app.on_event("startup")
 def startup_event():
     init_csv()
+    load_local_schedule()
 
 @app.get("/")
 def get_index():
@@ -100,7 +132,68 @@ def get_app():
 
 @app.get("/api/schedule")
 def get_schedule():
-    return {"schedule": SCHEDULE_DATA}
+    return {"schedule": current_schedule}
+
+@app.post("/api/update-schedule-from-files")
+def update_schedule_from_files():
+    try:
+        new_schedule = []
+        
+        # 1. Parse Medication-List.csv
+        med_path = os.path.join(DIR_PATH, "Medication-List.csv")
+        if os.path.exists(med_path):
+            with open(med_path, "r", encoding="utf-8-sig") as f:
+                reader = csv.reader(f)
+                header = next(reader, None)
+                for row in reader:
+                    if len(row) >= 2 and row[0].strip() and row[1].strip():
+                        new_schedule.append({
+                            "category": "Medication (TAB)",
+                            "activity": row[0].strip(),
+                            "time": normalize_time(row[1])
+                        })
+                        
+        # 2. Parse Diet_Meak_List.csv
+        diet_path = os.path.join(DIR_PATH, "Diet_Meak_List.csv")
+        if os.path.exists(diet_path):
+            with open(diet_path, "r", encoding="utf-8-sig") as f:
+                reader = csv.reader(f)
+                header = next(reader, None)
+                for row in reader:
+                    if len(row) >= 2 and row[0].strip() and row[1].strip():
+                        new_schedule.append({
+                            "category": "Diet & Meals",
+                            "activity": row[0].strip(),
+                            "time": normalize_time(row[1])
+                        })
+                        
+        # 3. Parse Services_DailyCare_Vitals_List.csv
+        services_path = os.path.join(DIR_PATH, "Services_DailyCare_Vitals_List.csv")
+        if os.path.exists(services_path):
+            with open(services_path, "r", encoding="utf-8-sig") as f:
+                reader = csv.reader(f)
+                header = next(reader, None)
+                for row in reader:
+                    if len(row) >= 2 and row[0].strip() and row[1].strip():
+                        new_schedule.append({
+                            "category": "Services & Daily Care Vitals",
+                            "activity": row[0].strip(),
+                            "time": normalize_time(row[1])
+                        })
+        
+        if not new_schedule:
+            raise HTTPException(status_code=400, detail="No schedule items could be parsed from the files.")
+            
+        global current_schedule
+        current_schedule = new_schedule
+        
+        # Persist to schedule.json
+        with open(SCHEDULE_JSON_PATH, "w", encoding="utf-8") as f:
+            json.dump(current_schedule, f, indent=2)
+            
+        return {"status": "success", "message": f"Successfully updated schedule with {len(current_schedule)} items from files."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 @app.post("/api/log")
 def add_log(entry: CareLogRequest):
@@ -135,6 +228,27 @@ def get_history():
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@app.get("/api/patient-name")
+def get_patient_name():
+    try:
+        path = os.path.join(DIR_PATH, "Name of the patient.csv")
+        if os.path.exists(path):
+            with open(path, "r", encoding="utf-8-sig") as f:
+                reader = csv.reader(f)
+                header = next(reader, None)
+                if header and len(header) > 0:
+                    col_name = header[0].strip()
+                    # If column name is generic like 'Name', use the value below it
+                    if col_name.lower() in ("name", "patient name", "patient_name"):
+                        row = next(reader, None)
+                        if row and len(row) > 0 and row[0].strip():
+                            return {"name": row[0].strip()}
+                    return {"name": col_name}
+        return {"name": "Sakkubhai"}
+    except Exception as e:
+        return {"name": "Sakkubhai"}
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run("main:app", host="localhost", port=8000, reload=True)
+

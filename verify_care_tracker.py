@@ -55,12 +55,20 @@ def verify_care_tracker():
             
         time.sleep(1)
         
-        # 1. Fill global active caregiver initials
+        # Register dialog handler to auto-accept the alert confirmation dialogs
+        page.on("dialog", lambda dialog: (print(f"DIALOG DETECTED: {dialog.message}"), dialog.accept()))
+        
+        # 1. Click Sync Schedule button
+        print("Clicking Sync Schedule from CSV Files button...")
+        page.locator("#btn-sync-schedule").click()
+        time.sleep(2)
+        
+        # 2. Fill global active caregiver initials
         print("Setting active nurse initials...")
         page.locator("#global-caregiver").fill("Ramya")
         time.sleep(0.5)
         
-        # 2. Click on the first medication "PAN -40-MG"
+        # 3. Click on the first medication "PAN -40-MG"
         print("Clicking PAN -40-MG medication card...")
         try:
             page.get_by_text("PAN -40-MG").first.click(timeout=10000)
@@ -87,10 +95,23 @@ def verify_care_tracker():
         
         time.sleep(1.5)
         
-        # 3. Click on Vitals Check task
+        # 4. Click on the dynamic CSV-loaded task "PM Spirometry"
+        print("Clicking PM Spirometry card...")
+        page.get_by_text("PM Spirometry").first.click()
+        time.sleep(1)
+        
+        print("Filling PM Spirometry log modal...")
+        page.locator("#modal-notes").fill("Patient completed 3 rounds")
+        page.locator("#modal-initials").fill("R.Y.")
+        time.sleep(0.5)
+        page.locator("#btn-submit-standard").click()
+        print("Submitted PM Spirometry modal.")
+        
+        time.sleep(1.5)
+        
+        # 5. Click on Vitals Check task (with the new CSV label name)
         print("Clicking Vitals Check card...")
-        # Get vitals check card containing "Vitals Check: BP, Pulse, SpO2, Temp"
-        page.get_by_text("Vitals Check: BP, Pulse").first.click()
+        page.get_by_text("Vitals Check: BP / Pulse").first.click()
         time.sleep(1)
         
         # Fill in vitals
@@ -107,7 +128,7 @@ def verify_care_tracker():
         
         time.sleep(1.5)
         
-        # 4. Click tab "Caregiver History Logs"
+        # 6. Click tab "Caregiver History Logs"
         print("Switching to History tab...")
         page.get_by_text("Caregiver History Logs").click()
         time.sleep(1.5)

@@ -155,6 +155,13 @@ h1 {
     color: #A3B5AC;
 }
 
+.sync-actions {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0.8rem 1.2rem;
+}
+
 /* Progress Section */
 .progress-section {
     display: flex;
@@ -622,3 +629,91 @@ h1 {
         opacity: 1;
     }
 }
+
+.animate-spin {
+    display: inline-block;
+    animation: spin 1.5s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* History Column Filter Styling */
+.th-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 0.4rem;
+}
+
+.filter-trigger {
+    cursor: pointer;
+    font-size: 0.65rem;
+    color: var(--text-secondary);
+    padding: 0.15rem 0.25rem;
+    border-radius: 4px;
+    transition: var(--transition);
+}
+
+.filter-trigger:hover {
+    color: var(--clr-teal);
+    background: rgba(8, 145, 178, 0.1);
+}
+
+.filter-trigger.active {
+    color: #FFFFFF;
+    background-color: var(--clr-teal);
+}
+
+/* Floating popover */
+.filter-popover {
+    position: absolute;
+    display: none;
+    z-index: 1050;
+    width: 240px;
+    background: #FFFFFF;
+    border: 1px solid var(--card-border);
+    box-shadow: 0 10px 25px -5px rgba(148, 174, 161, 0.3), 0 8px 16px -6px rgba(148, 174, 161, 0.2);
+    padding: 0.75rem;
+    border-radius: 12px;
+}
+
+.filter-popover.active {
+    display: block;
+}
+
+.filter-option-item {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    cursor: pointer;
+    padding: 0.2rem 0.4rem;
+    border-radius: 4px;
+    transition: var(--transition);
+}
+
+.filter-option-item:hover {
+    background: #F5F9F7;
+}
+
+.filter-option-item input[type="checkbox"] {
+    cursor: pointer;
+    accent-color: var(--clr-teal);
+    width: 14px;
+    height: 14px;
+}
+
+.filter-option-label {
+    text-overflow: ellipsis;
+    overflow: hidden;
+    white-space: nowrap;
+    user-select: none;
+}
+

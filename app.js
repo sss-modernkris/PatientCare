@@ -7,6 +7,8 @@ let activeCaregiver = "";
 let scheduleItems = [];
 let completedTasks = new Set(); // Stores composite key: "ActivityName_ScheduledTime"
 let historyLogs = [];
+let activeFilters = {};
+let currentFilterColumn = "";
 
 // DOM Elements
 const globalCaregiverInput = document.getElementById("global-caregiver");
@@ -34,7 +36,8 @@ async function initApp() {
         localStorage.setItem("caregiver_initials", activeCaregiver);
     });
 
-    // 3. Fetch Schedule & History
+    // 3. Fetch Patient Name, Schedule & History
+    await fetchPatientName();
     await fetchSchedule();
     await fetchHistory();
     
@@ -48,6 +51,50 @@ async function initApp() {
     
     // 6. Setup satisfaction buttons
     setupSatisfactionPicker();
+
+    // 7. Setup Sync Schedule button
+    setupSyncScheduleButton();
+
+    // 8. Setup Special Notes button
+    setupSpecialNotesButton();
+
+    // 9. Setup column filters
+    setupFilters();
+}
+
+// Bind sync schedule button handler
+function setupSyncScheduleButton() {
+    const btnSync = document.getElementById("btn-sync-schedule");
+    if (!btnSync) return;
+    
+    btnSync.addEventListener("click", async () => {
+        btnSync.disabled = true;
+        const originalHTML = btnSync.innerHTML;
+        btnSync.innerHTML = `<span class="sync-icon animate-spin">🔄</span> Syncing...`;
+        
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/update-schedule-from-files`, {
+                method: "POST"
+            });
+            if (!res.ok) {
+                const errData = await res.json();
+                throw new Error(errData.detail || "Failed to sync schedule.");
+            }
+            
+            const data = await res.json();
+            alert(data.message);
+            
+            // Reload schedule and history, then re-render dashboard
+            await fetchSchedule();
+            await fetchHistory();
+        } catch (e) {
+            console.error(e);
+            alert(`Error syncing schedule: ${e.message}`);
+        } finally {
+            btnSync.disabled = false;
+            btnSync.innerHTML = originalHTML;
+        }
+    });
 }
 
 // Tab navigation handler
@@ -80,6 +127,24 @@ function updateClock() {
 }
 
 // Fetch default schedule from backend API
+async function fetchPatientName() {
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/patient-name`);
+        if (res.ok) {
+            const data = await res.json();
+            if (data.name) {
+                const titleElem = document.getElementById("patient-name-title");
+                if (titleElem) {
+                    titleElem.textContent = data.name;
+                }
+                document.title = `${data.name} - Patient Care Log & Tracker`;
+            }
+        }
+    } catch (e) {
+        console.error("Failed to fetch patient name:", e);
+    }
+}
+
 async function fetchSchedule() {
     try {
         const res = await fetch(`${API_BASE_URL}/api/schedule`);
@@ -176,8 +241,15 @@ function renderHistoryTable() {
     const tbody = document.getElementById("history-table-body");
     tbody.innerHTML = "";
     
+    // Apply active column filters
+    let filteredLogs = [...historyLogs];
+    Object.keys(activeFilters).forEach(col => {
+        const allowedSet = activeFilters[col];
+        filteredLogs = filteredLogs.filter(row => allowedSet.has(row[col] || ""));
+    });
+    
     // Sort logs descending to show recent logs first
-    const sortedLogs = [...historyLogs].reverse();
+    const sortedLogs = filteredLogs.reverse();
     
     if (sortedLogs.length === 0) {
         tbody.innerHTML = `<tr><td colspan="8" class="text-center italic text-muted-secondary">No caregiver logs entered yet.</td></tr>`;
@@ -509,6 +581,37 @@ function setupFormSubmissions() {
         
         await submitLogEntry(payload, "modal-vitals");
     };
+
+    // 4. Submit Special Note Form
+    const btnSubmitSpecial = document.getElementById("btn-submit-special-note");
+    if (btnSubmitSpecial) {
+        btnSubmitSpecial.onclick = async () => {
+            const noteText = document.getElementById("special-note-text").value.trim();
+            const initials = document.getElementById("special-note-initials").value.trim();
+            
+            if (!noteText) {
+                alert("Please enter a special note.");
+                return;
+            }
+            if (!initials) {
+                alert("Nurse initials are strictly required.");
+                return;
+            }
+            
+            const payload = {
+                date: getTodayString(),
+                scheduled_time: "N/A",
+                actual_logged_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+                category: "Special Note",
+                activity_name: "Special Note",
+                logged_data_value: "Note",
+                notes_or_status: noteText,
+                caregiver_initials: initials
+            };
+            
+            await submitLogEntry(payload, "modal-special-note");
+        };
+    }
 }
 
 // POST transaction call to server to append log to local CSV file
@@ -537,5 +640,179 @@ async function submitLogEntry(payload, modalId) {
     } catch (e) {
         console.error(e);
         alert(`Error saving log entry: ${e.message}`);
+    }
+}
+
+// Special Notes Button setup
+function setupSpecialNotesButton() {
+    const btnSpecialNotes = document.getElementById("btn-add-special-notes");
+    if (btnSpecialNotes) {
+        btnSpecialNotes.addEventListener("click", () => {
+            document.getElementById("special-note-text").value = "";
+            document.getElementById("special-note-initials").value = activeCaregiver || "";
+            openModal("modal-special-note");
+        });
+    }
+}
+
+// Column Filter Setup & Handlers
+function setupFilters() {
+    const headers = document.querySelectorAll("#history-table-headers th");
+    headers.forEach(th => {
+        const trigger = th.querySelector(".filter-trigger");
+        if (trigger) {
+            trigger.addEventListener("click", (e) => {
+                e.stopPropagation(); // Avoid triggering document click
+                openFilterPopover(th);
+            });
+        }
+    });
+    
+    // Popover close handlers
+    const closeBtn = document.querySelector(".filter-close-btn");
+    if (closeBtn) {
+        closeBtn.addEventListener("click", closeFilterPopover);
+    }
+    const cancelBtn = document.getElementById("btn-filter-cancel");
+    if (cancelBtn) {
+        cancelBtn.addEventListener("click", closeFilterPopover);
+    }
+    
+    // Popover Clear & Apply
+    const clearBtn = document.getElementById("btn-filter-clear");
+    if (clearBtn) {
+        clearBtn.addEventListener("click", clearFilterForCurrentCol);
+    }
+    const applyBtn = document.getElementById("btn-filter-apply");
+    if (applyBtn) {
+        applyBtn.addEventListener("click", applyFilterForCurrentCol);
+    }
+    
+    // Search handler
+    const searchInput = document.getElementById("filter-search");
+    if (searchInput) {
+        searchInput.addEventListener("input", filterOptionsList);
+    }
+    
+    // Close popover when clicking outside
+    document.addEventListener("click", (e) => {
+        const popover = document.getElementById("filter-popover");
+        if (popover && popover.classList.contains("active")) {
+            if (!popover.contains(e.target)) {
+                closeFilterPopover();
+            }
+        }
+    });
+}
+
+function openFilterPopover(th) {
+    const col = th.getAttribute("data-col");
+    currentFilterColumn = col;
+    
+    const colDisplayName = th.querySelector("span").textContent.trim();
+    document.getElementById("filter-col-name").textContent = `Filter ${colDisplayName}`;
+    document.getElementById("filter-search").value = "";
+    
+    // Get unique values for this column from historyLogs
+    const uniqueValues = [...new Set(historyLogs.map(log => log[col] || ""))].sort();
+    
+    // Populate list
+    const listContainer = document.getElementById("filter-options-list");
+    listContainer.innerHTML = "";
+    
+    // Determine checked items
+    const activeSet = activeFilters[col];
+    
+    uniqueValues.forEach((val, index) => {
+        const isChecked = !activeSet || activeSet.has(val);
+        
+        const itemDiv = document.createElement("div");
+        itemDiv.className = "filter-option-item";
+        itemDiv.innerHTML = `
+            <input type="checkbox" id="chk-opt-${index}" value="${val.replace(/"/g, '&quot;')}" ${isChecked ? 'checked' : ''}>
+            <label class="filter-option-label" for="chk-opt-${index}">${val || "(Blank)"}</label>
+        `;
+        listContainer.appendChild(itemDiv);
+    });
+    
+    // Position popover relative to th
+    const popover = document.getElementById("filter-popover");
+    popover.classList.add("active");
+    
+    const rect = th.getBoundingClientRect();
+    popover.style.top = `${rect.bottom + window.scrollY}px`;
+    
+    // Adjust left to prevent clipping
+    let left = rect.left + window.scrollX;
+    if (left + 240 > window.innerWidth) {
+        left = window.innerWidth - 250;
+    }
+    popover.style.left = `${left}px`;
+}
+
+function closeFilterPopover() {
+    const popover = document.getElementById("filter-popover");
+    if (popover) {
+        popover.classList.remove("active");
+    }
+}
+
+function filterOptionsList() {
+    const search = document.getElementById("filter-search").value.toLowerCase();
+    const items = document.querySelectorAll(".filter-option-item");
+    items.forEach(item => {
+        const label = item.querySelector(".filter-option-label").textContent.toLowerCase();
+        if (label.includes(search)) {
+            item.style.display = "flex";
+        } else {
+            item.style.display = "none";
+        }
+    });
+}
+
+function clearFilterForCurrentCol() {
+    delete activeFilters[currentFilterColumn];
+    updateFilterTriggerIcon(currentFilterColumn, false);
+    closeFilterPopover();
+    renderHistoryTable();
+}
+
+function applyFilterForCurrentCol() {
+    const checkboxes = document.querySelectorAll("#filter-options-list input[type='checkbox']");
+    const checkedValues = [];
+    const allValues = [];
+    
+    checkboxes.forEach(cb => {
+        allValues.push(cb.value);
+        if (cb.checked) {
+            checkedValues.push(cb.value);
+        }
+    });
+    
+    if (checkedValues.length === allValues.length) {
+        delete activeFilters[currentFilterColumn];
+        updateFilterTriggerIcon(currentFilterColumn, false);
+    } else {
+        activeFilters[currentFilterColumn] = new Set(checkedValues);
+        updateFilterTriggerIcon(currentFilterColumn, true);
+    }
+    
+    closeFilterPopover();
+    renderHistoryTable();
+}
+
+function updateFilterTriggerIcon(col, isFiltered) {
+    const th = document.querySelector(`#history-table-headers th[data-col='${col}']`);
+    if (th) {
+        const trigger = th.querySelector(".filter-trigger");
+        if (trigger) {
+            if (isFiltered) {
+                trigger.classList.add("active");
+                trigger.textContent = "▼ (Filtered)";
+            } else {
+                trigger.classList.remove("active");
+                trigger.textContent = "▼";
+            }
+        }
     }
 }
