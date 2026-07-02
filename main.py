@@ -104,8 +104,8 @@ class CareLogRequest(BaseModel):
     caregiver_initials: str
 
 def init_csv():
-    # Write header if CSV does not exist
-    if not os.path.exists(CSV_FILE_PATH):
+    # Write header if CSV does not exist or is empty
+    if not os.path.exists(CSV_FILE_PATH) or os.path.getsize(CSV_FILE_PATH) == 0:
         with open(CSV_FILE_PATH, mode='w', newline='', encoding='utf-8') as f:
             writer = csv.writer(f)
             writer.writerow([

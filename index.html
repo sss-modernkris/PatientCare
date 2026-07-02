@@ -7,6 +7,8 @@
     <!-- Modern typography -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
+    <!-- Chart.js for Vitals Progress plotting -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 </head>
 <body>
     <!-- Main soothing background wrapper -->
@@ -59,6 +61,7 @@
         <nav class="navigation-tabs">
             <button id="tab-today" class="tab-button active">Today's Care Plan</button>
             <button id="tab-history" class="tab-button">Caregiver History Logs</button>
+            <button id="tab-analytics" class="tab-button">Vitals Analytics</button>
         </nav>
 
         <!-- Main dashboard content panels -->
@@ -105,9 +108,14 @@
 
             <!-- HISTORY TAB -->
             <div id="panel-history" class="tab-panel">
-                <div class="history-controls card">
-                    <h2>Patient Medical CSV Logs</h2>
-                    <p class="subtitle">Complete historical logs exported to <code>daily_medical_logs.csv</code></p>
+                <div class="history-controls card" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;">
+                    <div>
+                        <h2>Patient Medical CSV Logs</h2>
+                        <p class="subtitle">Complete historical logs exported to <code>daily_medical_logs.csv</code></p>
+                    </div>
+                    <button id="btn-go-to-plot" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
+                        <span class="chart-icon">📊</span> View Vitals Progress Plot
+                    </button>
                 </div>
                 <div class="table-wrap card">
                     <table class="history-table">
@@ -167,6 +175,78 @@
                             <!-- CSV logs dynamically rendered -->
                         </tbody>
                     </table>
+                </div>
+            </div>
+
+            <!-- VITALS ANALYTICS PANEL -->
+            <div id="panel-analytics" class="tab-panel">
+                <!-- Controls Card -->
+                <div class="analytics-controls card">
+                    <div class="analytics-filters">
+                        <!-- Date range selector -->
+                        <div class="filter-group">
+                            <label for="plot-start-date">Start Date</label>
+                            <input type="date" id="plot-start-date">
+                        </div>
+                        <div class="filter-group">
+                            <label for="plot-end-date">End Date</label>
+                            <input type="date" id="plot-end-date">
+                        </div>
+                        
+                        <!-- Vitals Checkboxes -->
+                        <div class="filter-group checkboxes-group">
+                            <label>Vitals to Plot</label>
+                            <div class="checkboxes-wrap">
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="plot-vital-bp" checked> BP (Blood Pressure)
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="plot-vital-hr" checked> HR (Heart Rate)
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="plot-vital-spo2" checked> SpO2 (Oxygen)
+                                </label>
+                                <label class="checkbox-label">
+                                    <input type="checkbox" id="plot-vital-temp" checked> Temperature
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Container Grid -->
+                <div class="charts-grid">
+                    <!-- BP Chart Card -->
+                    <div id="chart-card-bp" class="chart-card card">
+                        <h3>Blood Pressure Trend (mmHg)</h3>
+                        <div class="chart-canvas-wrap">
+                            <canvas id="chart-bp"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- HR Chart Card -->
+                    <div id="chart-card-hr" class="chart-card card">
+                        <h3>Heart Rate Trend (bpm)</h3>
+                        <div class="chart-canvas-wrap">
+                            <canvas id="chart-hr"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- SpO2 Chart Card -->
+                    <div id="chart-card-spo2" class="chart-card card">
+                        <h3>SpO2 Trend (%)</h3>
+                        <div class="chart-canvas-wrap">
+                            <canvas id="chart-spo2"></canvas>
+                        </div>
+                    </div>
+                    
+                    <!-- Temperature Chart Card -->
+                    <div id="chart-card-temp" class="chart-card card">
+                        <h3>Body Temperature Trend (&deg;F)</h3>
+                        <div class="chart-canvas-wrap">
+                            <canvas id="chart-temp"></canvas>
+                        </div>
+                    </div>
                 </div>
             </div>
         </main>

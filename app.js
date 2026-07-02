@@ -9,6 +9,7 @@ let completedTasks = new Set(); // Stores composite key: "ActivityName_Scheduled
 let historyLogs = [];
 let activeFilters = {};
 let currentFilterColumn = "";
+let vitalsCharts = { bp: null, hr: null, spo2: null, temp: null };
 
 // DOM Elements
 const globalCaregiverInput = document.getElementById("global-caregiver");
@@ -60,6 +61,9 @@ async function initApp() {
 
     // 9. Setup column filters
     setupFilters();
+
+    // 10. Setup Vitals Analytics controls
+    setupAnalyticsControls();
 }
 
 // Bind sync schedule button handler
@@ -101,23 +105,49 @@ function setupSyncScheduleButton() {
 function setupTabs() {
     const tabToday = document.getElementById("tab-today");
     const tabHistory = document.getElementById("tab-history");
+    const tabAnalytics = document.getElementById("tab-analytics");
     const panelToday = document.getElementById("panel-today");
     const panelHistory = document.getElementById("panel-history");
+    const panelAnalytics = document.getElementById("panel-analytics");
+    const btnGoToPlot = document.getElementById("btn-go-to-plot");
+
+    function deactivateAll() {
+        tabToday.classList.remove("active");
+        tabHistory.classList.remove("active");
+        tabAnalytics.classList.remove("active");
+        panelToday.classList.remove("active");
+        panelHistory.classList.remove("active");
+        panelAnalytics.classList.remove("active");
+    }
 
     tabToday.addEventListener("click", () => {
+        deactivateAll();
         tabToday.classList.add("active");
-        tabHistory.classList.remove("active");
         panelToday.classList.add("active");
-        panelHistory.classList.remove("active");
     });
 
     tabHistory.addEventListener("click", () => {
+        deactivateAll();
         tabHistory.classList.add("active");
-        tabToday.classList.remove("active");
         panelHistory.classList.add("active");
-        panelToday.classList.remove("active");
         fetchHistory(); // Refresh history list when tab selected
     });
+
+    tabAnalytics.addEventListener("click", () => {
+        deactivateAll();
+        tabAnalytics.classList.add("active");
+        panelAnalytics.classList.add("active");
+        renderVitalsCharts(); // Render/update charts
+    });
+
+    if (btnGoToPlot) {
+        btnGoToPlot.addEventListener("click", () => {
+            deactivateAll();
+            tabAnalytics.classList.add("active");
+            panelAnalytics.classList.add("active");
+            renderVitalsCharts();
+        });
+    }
 }
 
 // Clock updates
@@ -813,6 +843,327 @@ function updateFilterTriggerIcon(col, isFiltered) {
                 trigger.classList.remove("active");
                 trigger.textContent = "▼";
             }
+        }
+    }
+}
+
+// Vitals Analytics Controllers
+function setupAnalyticsControls() {
+    const startDateInput = document.getElementById("plot-start-date");
+    const endDateInput = document.getElementById("plot-end-date");
+    
+    // Default range: 7 days ago to today
+    const end = new Date();
+    const start = new Date();
+    start.setDate(end.getDate() - 7);
+    
+    if (startDateInput && endDateInput) {
+        startDateInput.value = formatDate(start);
+        endDateInput.value = formatDate(end);
+        
+        startDateInput.addEventListener("change", renderVitalsCharts);
+        endDateInput.addEventListener("change", renderVitalsCharts);
+    }
+    
+    const vBP = document.getElementById("plot-vital-bp");
+    const vHR = document.getElementById("plot-vital-hr");
+    const vSpO2 = document.getElementById("plot-vital-spo2");
+    const vTemp = document.getElementById("plot-vital-temp");
+    
+    if (vBP) vBP.addEventListener("change", renderVitalsCharts);
+    if (vHR) vHR.addEventListener("change", renderVitalsCharts);
+    if (vSpO2) vSpO2.addEventListener("change", renderVitalsCharts);
+    if (vTemp) vTemp.addEventListener("change", renderVitalsCharts);
+}
+
+function formatDate(date) {
+    const y = date.getFullYear();
+    const m = String(date.getMonth() + 1).padStart(2, '0');
+    const d = String(date.getDate()).padStart(2, '0');
+    return `${y}-${m}-${d}`;
+}
+
+function convert12hTo24h(timeStr) {
+    if (!timeStr || timeStr === "N/A" || timeStr === "Flexible") return "00:00";
+    const match = timeStr.match(/^(\d{1,2}):(\d{2})\s*(AM|PM)$/i);
+    if (!match) return timeStr;
+    let hours = parseInt(match[1]);
+    const minutes = match[2];
+    const ampm = match[3].toUpperCase();
+    if (ampm === "PM" && hours < 12) hours += 12;
+    if (ampm === "AM" && hours === 12) hours = 0;
+    return `${String(hours).padStart(2, '0')}:${minutes}`;
+}
+
+function parseVitalValue(str) {
+    if (!str) return null;
+    const bpMatch = str.match(/BP:\s*(\d{2,3})\/(\d{2,3})/);
+    const hrMatch = str.match(/HR:\s*(\d{2,3})/);
+    const spo2Match = str.match(/SpO2:\s*(\d{2,3})%/);
+    const tempMatch = str.match(/T:\s*(\d{2,3}(?:\.\d+)?)°F/);
+    
+    if (!bpMatch && !hrMatch && !spo2Match && !tempMatch) return null;
+    
+    return {
+        systolic: bpMatch ? parseInt(bpMatch[1]) : null,
+        diastolic: bpMatch ? parseInt(bpMatch[2]) : null,
+        hr: hrMatch ? parseInt(hrMatch[1]) : null,
+        spo2: spo2Match ? parseInt(spo2Match[1]) : null,
+        temp: tempMatch ? parseFloat(tempMatch[1]) : null
+    };
+}
+
+function getFilteredSortedVitals() {
+    const startDateVal = document.getElementById("plot-start-date")?.value;
+    const endDateVal = document.getElementById("plot-end-date")?.value;
+    
+    const startLimit = startDateVal ? new Date(startDateVal) : null;
+    const endLimit = endDateVal ? new Date(endDateVal) : null;
+    if (startLimit) startLimit.setHours(0, 0, 0, 0);
+    if (endLimit) endLimit.setHours(23, 59, 59, 999);
+
+    const parsedEntries = [];
+    
+    historyLogs.forEach(row => {
+        if (!row.Date) return;
+        const rowDate = new Date(row.Date);
+        rowDate.setHours(12, 0, 0, 0);
+        
+        if (startLimit && rowDate < startLimit) return;
+        if (endLimit && rowDate > endLimit) return;
+        
+        const parsed = parseVitalValue(row.Logged_Data_Value);
+        if (!parsed) return;
+        
+        const time24 = convert12hTo24h(row.Actual_Logged_Time || row.Scheduled_Time || "12:00 AM");
+        const timestamp = new Date(`${row.Date} ${time24}`);
+        
+        parsedEntries.push({
+            timestamp: timestamp,
+            dateStr: row.Date,
+            timeStr: row.Actual_Logged_Time || row.Scheduled_Time || "N/A",
+            ...parsed
+        });
+    });
+    
+    parsedEntries.sort((a, b) => a.timestamp - b.timestamp);
+    return parsedEntries;
+}
+
+function renderVitalsCharts() {
+    const data = getFilteredSortedVitals();
+    const labels = data.map(item => `${item.dateStr} ${item.timeStr}`);
+    
+    const showBP = document.getElementById("plot-vital-bp")?.checked ?? true;
+    const showHR = document.getElementById("plot-vital-hr")?.checked ?? true;
+    const showSpO2 = document.getElementById("plot-vital-spo2")?.checked ?? true;
+    const showTemp = document.getElementById("plot-vital-temp")?.checked ?? true;
+    
+    const bpCard = document.getElementById("chart-card-bp");
+    const hrCard = document.getElementById("chart-card-hr");
+    const spo2Card = document.getElementById("chart-card-spo2");
+    const tempCard = document.getElementById("chart-card-temp");
+    
+    if (bpCard) bpCard.style.display = showBP ? "flex" : "none";
+    if (hrCard) hrCard.style.display = showHR ? "flex" : "none";
+    if (spo2Card) spo2Card.style.display = showSpO2 ? "flex" : "none";
+    if (tempCard) tempCard.style.display = showTemp ? "flex" : "none";
+    
+    if (vitalsCharts.bp) { vitalsCharts.bp.destroy(); vitalsCharts.bp = null; }
+    if (vitalsCharts.hr) { vitalsCharts.hr.destroy(); vitalsCharts.hr = null; }
+    if (vitalsCharts.spo2) { vitalsCharts.spo2.destroy(); vitalsCharts.spo2 = null; }
+    if (vitalsCharts.temp) { vitalsCharts.temp.destroy(); vitalsCharts.temp = null; }
+    
+    if (data.length === 0) return;
+    
+    const commonOptions = {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+            legend: {
+                position: 'top',
+                labels: { font: { family: 'Outfit', size: 11, weight: '600' } }
+            },
+            tooltip: {
+                backgroundColor: 'rgba(31, 46, 39, 0.95)',
+                titleFont: { family: 'Outfit', weight: 'bold' },
+                bodyFont: { family: 'Inter' }
+            }
+        },
+        scales: {
+            x: {
+                grid: { display: false },
+                ticks: {
+                    font: { family: 'Inter', size: 9 },
+                    maxRotation: 45,
+                    minRotation: 45
+                }
+            },
+            y: {
+                grid: { color: '#E4ECE8' },
+                ticks: { font: { family: 'Inter', size: 9 } }
+            }
+        }
+    };
+
+    if (showBP) {
+        const canvas = document.getElementById("chart-bp");
+        if (canvas) {
+            const ctx = canvas.getContext("2d");
+            const systolics = data.map(item => item.systolic);
+            const diastolics = data.map(item => item.diastolic);
+            
+            vitalsCharts.bp = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: 'Systolic (mmHg)',
+                            data: systolics,
+                            borderColor: '#EF4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.05)',
+                            borderWidth: 2.5,
+                            tension: 0.3,
+                            fill: false,
+                            spanGaps: true
+                        },
+                        {
+                            label: 'Diastolic (mmHg)',
+                            data: diastolics,
+                            borderColor: '#3B82F6',
+                            backgroundColor: 'rgba(59, 130, 246, 0.05)',
+                            borderWidth: 2.5,
+                            tension: 0.3,
+                            fill: false,
+                            spanGaps: true
+                        }
+                    ]
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        ...commonOptions.scales,
+                        y: {
+                            ...commonOptions.scales.y,
+                            min: 50,
+                            max: 180,
+                            title: { display: true, text: 'mmHg', font: { family: 'Outfit', size: 10, weight: '700' } }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    if (showHR) {
+        const canvas = document.getElementById("chart-hr");
+        if (canvas) {
+            const ctx = canvas.getContext("2d");
+            const hrs = data.map(item => item.hr);
+            
+            vitalsCharts.hr = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Heart Rate (bpm)',
+                        data: hrs,
+                        borderColor: '#EC4899',
+                        backgroundColor: 'rgba(236, 72, 153, 0.05)',
+                        borderWidth: 2.5,
+                        tension: 0.3,
+                        fill: true,
+                        spanGaps: true
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        ...commonOptions.scales,
+                        y: {
+                            ...commonOptions.scales.y,
+                            min: 40,
+                            max: 150,
+                            title: { display: true, text: 'bpm', font: { family: 'Outfit', size: 10, weight: '700' } }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    if (showSpO2) {
+        const canvas = document.getElementById("chart-spo2");
+        if (canvas) {
+            const ctx = canvas.getContext("2d");
+            const spo2s = data.map(item => item.spo2);
+            
+            vitalsCharts.spo2 = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'SpO2 Oxygen (%)',
+                        data: spo2s,
+                        borderColor: '#06B6D4',
+                        backgroundColor: 'rgba(6, 182, 212, 0.05)',
+                        borderWidth: 2.5,
+                        tension: 0.3,
+                        fill: true,
+                        spanGaps: true
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        ...commonOptions.scales,
+                        y: {
+                            ...commonOptions.scales.y,
+                            min: 80,
+                            max: 100,
+                            title: { display: true, text: '%', font: { family: 'Outfit', size: 10, weight: '700' } }
+                        }
+                    }
+                }
+            });
+        }
+    }
+
+    if (showTemp) {
+        const canvas = document.getElementById("chart-temp");
+        if (canvas) {
+            const ctx = canvas.getContext("2d");
+            const temps = data.map(item => item.temp);
+            
+            vitalsCharts.temp = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [{
+                        label: 'Temperature (°F)',
+                        data: temps,
+                        borderColor: '#F59E0B',
+                        backgroundColor: 'rgba(245, 158, 11, 0.05)',
+                        borderWidth: 2.5,
+                        tension: 0.3,
+                        fill: true,
+                        spanGaps: true
+                    }]
+                },
+                options: {
+                    ...commonOptions,
+                    scales: {
+                        ...commonOptions.scales,
+                        y: {
+                            ...commonOptions.scales.y,
+                            min: 95,
+                            max: 105,
+                            title: { display: true, text: '°F', font: { family: 'Outfit', size: 10, weight: '700' } }
+                        }
+                    }
+                }
+            });
         }
     }
 }

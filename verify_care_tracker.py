@@ -11,25 +11,52 @@ def verify_care_tracker():
     
     csv_path = os.path.join(base_dir, "daily_medical_logs.csv")
     if os.path.exists(csv_path):
-        os.remove(csv_path)
-        print("Removed existing daily_medical_logs.csv")
+        print("Filtering out today's logs from daily_medical_logs.csv to allow test to run...")
+        import datetime
+        today_str = datetime.date.today().strftime("%Y-%m-%d")
+        temp_rows = []
+        try:
+            with open(csv_path, mode='r', encoding='utf-8') as f:
+                reader = csv.reader(f)
+                header = next(reader, None)
+                if header:
+                    temp_rows.append(header)
+                    for row in reader:
+                        if len(row) > 0 and row[0] != today_str:
+                            temp_rows.append(row)
+            with open(csv_path, mode='w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerows(temp_rows)
+            print(f"Removed today's entries ({today_str}) to ensure fresh logging.")
+        except Exception as e:
+            print(f"Error preparing csv file: {e}")
         
     # Use the Python interpreter from the existing StockPicker virtualenv
     python_exe = r"C:\Users\moder\AntiGravity\StockPickerStrategies-20260610\backend\.venv\Scripts\python.exe"
     if not os.path.exists(python_exe):
         python_exe = "python"
         
-    print(f"Launching FastAPI backend with {python_exe}...")
-    server_process = subprocess.Popen(
-        [python_exe, "main.py"],
-        cwd=base_dir,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True
-    )
-    
-    # Wait for server to start
-    time.sleep(3)
+    import socket
+    def is_port_active(port):
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            return s.connect_ex(('localhost', port)) == 0
+
+    launched_server = False
+    server_process = None
+    if not is_port_active(8000):
+        print(f"Launching FastAPI backend with {python_exe}...")
+        server_process = subprocess.Popen(
+            [python_exe, "main.py"],
+            cwd=base_dir,
+            stdout=subprocess.DEVNULL,
+            stderr=subprocess.DEVNULL,
+            text=True
+        )
+        launched_server = True
+        # Wait for server to start
+        time.sleep(3)
+    else:
+        print("FastAPI backend is already running on port 8000, reusing it.")
     
     with sync_playwright() as p:
         print("Launching browser...")
@@ -132,6 +159,11 @@ def verify_care_tracker():
         print("Switching to History tab...")
         page.get_by_text("Caregiver History Logs").click()
         time.sleep(1.5)
+        
+        # 7. Click on "View Vitals Progress Plot" button
+        print("Clicking View Vitals Progress Plot button...")
+        page.locator("#btn-go-to-plot").click()
+        time.sleep(2.0)
         
         # Save screenshot
         screenshot_path = os.path.join(output_dir, "patient_care_tracker_completed.png")
