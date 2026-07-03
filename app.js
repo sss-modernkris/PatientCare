@@ -253,38 +253,58 @@ async function initApp() {
         localStorage.setItem("caregiver_initials", activeCaregiver);
     });
 
-    // 3. Fetch Patient Name, Schedule & History
+    // 3. Seed Config Files from Server / Baseline
+    const files = ["Name of the patient.csv", "Medication-List.csv", "Diet_Meak_List.csv", "Services_DailyCare_Vitals_List.csv"];
+    for (const file of files) {
+        const storageKey = `config_file_${file}`;
+        if (localStorage.getItem(storageKey) === null) {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/config-file/${encodeURIComponent(file)}`);
+                if (res.ok) {
+                    const data = await res.json();
+                    localStorage.setItem(storageKey, data.content || "");
+                } else {
+                    throw new Error("Server error");
+                }
+            } catch (e) {
+                console.warn(`Could not seed file ${file} from server:`, e);
+                localStorage.setItem(storageKey, BASELINE_CONFIGS[file] || "");
+            }
+        }
+    }
+
+    // 4. Fetch Patient Name, Schedule & History
     await fetchPatientName();
     await fetchSchedule();
     await fetchHistory();
     
-    // 4. Alarm system and Clock Setup
+    // 5. Alarm system and Clock Setup
     updateClock();
     setInterval(updateClock, 1000); // Update time display every second
     setInterval(checkAlarms, 10000); // Check alarms every 10 seconds
     
-    // 5. Setup Form Submit Buttons
+    // 6. Setup Form Submit Buttons
     setupFormSubmissions();
     
-    // 6. Setup satisfaction buttons
+    // 7. Setup satisfaction buttons
     setupSatisfactionPicker();
 
-    // 7. Setup Sync Schedule button
+    // 8. Setup Sync Schedule button
     setupSyncScheduleButton();
 
-    // 8. Setup Special Notes button
+    // 9. Setup Special Notes button
     setupSpecialNotesButton();
 
-    // 9. Setup column filters
+    // 10. Setup column filters
     setupFilters();
 
-    // 10. Setup Vitals Analytics controls
+    // 11. Setup Vitals Analytics controls
     setupAnalyticsControls();
 
-    // 11. Setup Config Files editing tab
+    // 12. Setup Config Files editing tab
     setupConfigTab();
 
-    // 12. Setup Download CSV buttons
+    // 13. Setup Download CSV buttons
     const btnDownloadHeader = document.getElementById("btn-download-csv-header");
     if (btnDownloadHeader) {
         btnDownloadHeader.addEventListener("click", downloadLogsCSV);
@@ -425,20 +445,24 @@ function updateClock() {
 async function fetchPatientName() {
     let name = localStorage.getItem("patient_name");
     if (!name) {
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/patient-name`);
-            if (res.ok) {
-                const data = await res.json();
-                name = data.name;
-                localStorage.setItem("patient_name", name);
-            } else {
-                throw new Error("Server error");
+        const fileContent = localStorage.getItem("config_file_Name of the patient.csv");
+        if (fileContent) {
+            name = parsePatientNameFromCSV(fileContent);
+        } else {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/patient-name`);
+                if (res.ok) {
+                    const data = await res.json();
+                    name = data.name;
+                } else {
+                    throw new Error("Server error");
+                }
+            } catch (e) {
+                console.error("Failed to fetch patient name from server:", e);
+                name = "Sakkubhai";
             }
-        } catch (e) {
-            console.error("Failed to fetch patient name from server:", e);
-            name = "Sakkubhai";
-            localStorage.setItem("patient_name", name);
         }
+        localStorage.setItem("patient_name", name);
     }
     const titleElem = document.getElementById("patient-name-title");
     if (titleElem) {
@@ -452,20 +476,24 @@ async function fetchSchedule() {
     if (schedule) {
         scheduleItems = JSON.parse(schedule);
     } else {
-        try {
-            const res = await fetch(`${API_BASE_URL}/api/schedule`);
-            if (res.ok) {
-                const data = await res.json();
-                scheduleItems = data.schedule || [];
-                localStorage.setItem("care_schedule", JSON.stringify(scheduleItems));
-            } else {
-                throw new Error("Server error");
+        const parsed = parseScheduleFiles();
+        if (parsed && parsed.length > 0) {
+            scheduleItems = parsed;
+        } else {
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/schedule`);
+                if (res.ok) {
+                    const data = await res.json();
+                    scheduleItems = data.schedule || [];
+                } else {
+                    throw new Error("Server error");
+                }
+            } catch (e) {
+                console.error(e);
+                scheduleItems = BASELINE_SCHEDULE;
             }
-        } catch (e) {
-            console.error(e);
-            scheduleItems = BASELINE_SCHEDULE;
-            localStorage.setItem("care_schedule", JSON.stringify(scheduleItems));
         }
+        localStorage.setItem("care_schedule", JSON.stringify(scheduleItems));
     }
 }
 
@@ -1502,6 +1530,25 @@ function setupConfigTab() {
         btnSave.addEventListener("click", saveActiveConfigFile);
     }
 
+    // Download CSV button
+    const btnDownload = document.getElementById("btn-download-config-csv");
+    if (btnDownload) {
+        btnDownload.addEventListener("click", () => {
+            const storageKey = `config_file_${activeConfigFile}`;
+            const content = localStorage.getItem(storageKey) || BASELINE_CONFIGS[activeConfigFile] || "";
+            const blob = new Blob([content], { type: "text/csv;charset=utf-8;" });
+            const url = URL.createObjectURL(blob);
+            
+            const link = document.createElement("a");
+            link.setAttribute("href", url);
+            link.setAttribute("download", activeConfigFile);
+            link.style.visibility = 'hidden';
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+        });
+    }
+
     // Sync shortcut button
     const btnSyncShortcut = document.getElementById("btn-sync-schedule-shortcut");
     if (btnSyncShortcut) {
@@ -1587,6 +1634,15 @@ async function saveActiveConfigFile() {
         const titleElem = document.getElementById("patient-name-title");
         if (titleElem) titleElem.textContent = parsedName;
         document.title = `${parsedName} - Patient Care Log & Tracker`;
+    } else {
+        // Automatically sync schedule if medication/diet/services lists are edited!
+        const newSchedule = parseScheduleFiles();
+        if (newSchedule && newSchedule.length > 0) {
+            localStorage.setItem("care_schedule", JSON.stringify(newSchedule));
+            scheduleItems = newSchedule;
+            renderSchedule();
+            calculateProgress();
+        }
     }
     
     try {

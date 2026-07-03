@@ -293,9 +293,12 @@
                         <div class="status-msg-container">
                             <span id="config-status-msg" class="status-msg"></span>
                         </div>
-                        <div class="action-buttons-wrap" style="display: flex; gap: 0.75rem;">
+                        <div class="action-buttons-wrap" style="display: flex; gap: 0.75rem; flex-wrap: wrap;">
                             <button id="btn-save-config" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
                                 <span class="save-icon">💾</span> Save File Changes
+                            </button>
+                            <button id="btn-download-config-csv" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; background-color: #047857; color: white; border-color: #047857;">
+                                <span class="download-icon">📥</span> Download CSV File
                             </button>
                             <button id="btn-sync-schedule-shortcut" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem;">
                                 <span class="sync-icon">🔄</span> Sync Active Care Schedule
