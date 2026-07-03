@@ -124,6 +124,18 @@ h1 {
     color: var(--text-secondary);
 }
 
+.version-label {
+    display: inline-block;
+    font-family: var(--font-inter);
+    font-size: 0.7rem;
+    color: var(--text-secondary);
+    background: #E8EFEA;
+    padding: 0.15rem 0.4rem;
+    border-radius: 4px;
+    margin-top: 0.25rem;
+    font-weight: 500;
+}
+
 .caregiver-config {
     display: flex;
     flex-direction: column;
@@ -826,6 +838,128 @@ h1 {
     flex: 1;
     width: 100%;
     height: 240px;
+}
+
+/* Setup Configuration Panel Styles */
+.config-container {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.config-header {
+    border-bottom: 1px solid #E4ECE8;
+    padding-bottom: 0.75rem;
+}
+
+.config-header h2 {
+    font-family: var(--font-outfit);
+    font-size: 1.4rem;
+    font-weight: 700;
+    color: var(--text-primary);
+}
+
+.config-file-selector {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 0.75rem;
+}
+
+.cfg-file-btn {
+    background: #E8EFEA;
+    border: 1px solid var(--card-border);
+    border-radius: 12px;
+    padding: 0.75rem 1rem;
+    font-family: var(--font-outfit);
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text-secondary);
+    cursor: pointer;
+    transition: var(--transition);
+    text-align: center;
+}
+
+.cfg-file-btn:hover {
+    background: #D5E4DB;
+    color: var(--text-primary);
+}
+
+.cfg-file-btn.active {
+    background: var(--clr-teal);
+    color: #FFFFFF;
+    border-color: var(--clr-teal);
+    box-shadow: 0 4px 12px rgba(8, 145, 178, 0.25);
+}
+
+.editor-section {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.editor-label {
+    font-family: var(--font-outfit);
+    font-weight: 600;
+    font-size: 0.95rem;
+    color: var(--text-primary);
+}
+
+.csv-validation-hint {
+    font-size: 0.75rem;
+    color: var(--text-secondary);
+    font-style: italic;
+}
+
+#csv-editor {
+    width: 100%;
+    height: 380px;
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 0.9rem;
+    line-height: 1.4;
+    padding: 1rem;
+    border-radius: 12px;
+    border: 1px solid #C4D3CB;
+    background: #FAFDFB;
+    color: #1F2E27;
+    resize: vertical;
+    outline: none;
+    transition: var(--transition);
+}
+
+#csv-editor:focus {
+    border-color: var(--clr-teal);
+    box-shadow: 0 0 0 3px rgba(8, 145, 178, 0.12);
+    background: #FFFFFF;
+}
+
+.config-actions {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+    border-top: 1px solid #E8EFEA;
+    padding-top: 1.2rem;
+}
+
+.status-msg-container {
+    flex: 1;
+    min-width: 250px;
+}
+
+.status-msg {
+    font-family: var(--font-outfit);
+    font-size: 0.9rem;
+    font-weight: 500;
+    transition: var(--transition);
+}
+
+.status-msg.success {
+    color: var(--clr-completed);
+}
+
+.status-msg.error {
+    color: #EF4444;
 }
 
 

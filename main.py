@@ -21,7 +21,8 @@ app.add_middleware(
 
 # Paths
 DIR_PATH = os.path.dirname(os.path.abspath(__file__))
-CSV_FILE_PATH = os.path.join(DIR_PATH, "daily_medical_logs.csv")
+CSV_FILE_NAME = os.environ.get("CSV_FILE_NAME", "daily_medical_logs.csv")
+CSV_FILE_PATH = os.path.join(DIR_PATH, CSV_FILE_NAME)
 SCHEDULE_JSON_PATH = os.path.join(DIR_PATH, "schedule.json")
 
 # Baseline Schedule Dataset
@@ -248,7 +249,48 @@ def get_patient_name():
     except Exception as e:
         return {"name": "Sakkubhai"}
 
+VALID_EDITABLE_FILES = {
+    "Diet_Meak_List.csv": "Diet_Meak_List.csv",
+    "Medication-List.csv": "Medication-List.csv",
+    "Name of the patient.csv": "Name of the patient.csv",
+    "Services_DailyCare_Vitals_List.csv": "Services_DailyCare_Vitals_List.csv"
+}
+
+@app.get("/api/config-files")
+def get_config_files():
+    return list(VALID_EDITABLE_FILES.keys())
+
+@app.get("/api/config-file/{filename}")
+def get_config_file_content(filename: str):
+    if filename not in VALID_EDITABLE_FILES:
+        raise HTTPException(status_code=400, detail="Invalid config file name.")
+    path = os.path.join(DIR_PATH, VALID_EDITABLE_FILES[filename])
+    if not os.path.exists(path):
+        return {"content": ""}
+    try:
+        with open(path, "r", encoding="utf-8") as f:
+            return {"content": f.read()}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to read file: {e}")
+
+class UpdateFileRequest(BaseModel):
+    content: str
+
+@app.post("/api/config-file/{filename}")
+def update_config_file_content(filename: str, payload: UpdateFileRequest):
+    if filename not in VALID_EDITABLE_FILES:
+        raise HTTPException(status_code=400, detail="Invalid config file name.")
+    path = os.path.join(DIR_PATH, VALID_EDITABLE_FILES[filename])
+    try:
+        with open(path, "w", encoding="utf-8", newline="") as f:
+            f.write(payload.content)
+        return {"status": "success", "message": f"Successfully updated {filename}."}
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Failed to write file: {e}")
+
 if __name__ == "__main__":
     import uvicorn
-    uvicorn.run("main:app", host="localhost", port=8000, reload=True)
+    import os
+    port = int(os.environ.get("PORT", 8000))
+    uvicorn.run("main:app", host="localhost", port=port, reload=True)
 

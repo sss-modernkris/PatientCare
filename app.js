@@ -64,6 +64,9 @@ async function initApp() {
 
     // 10. Setup Vitals Analytics controls
     setupAnalyticsControls();
+
+    // 11. Setup Config Files editing tab
+    setupConfigTab();
 }
 
 // Bind sync schedule button handler
@@ -106,18 +109,22 @@ function setupTabs() {
     const tabToday = document.getElementById("tab-today");
     const tabHistory = document.getElementById("tab-history");
     const tabAnalytics = document.getElementById("tab-analytics");
+    const tabConfig = document.getElementById("tab-config");
     const panelToday = document.getElementById("panel-today");
     const panelHistory = document.getElementById("panel-history");
     const panelAnalytics = document.getElementById("panel-analytics");
+    const panelConfig = document.getElementById("panel-config");
     const btnGoToPlot = document.getElementById("btn-go-to-plot");
 
     function deactivateAll() {
         tabToday.classList.remove("active");
         tabHistory.classList.remove("active");
         tabAnalytics.classList.remove("active");
+        if (tabConfig) tabConfig.classList.remove("active");
         panelToday.classList.remove("active");
         panelHistory.classList.remove("active");
         panelAnalytics.classList.remove("active");
+        if (panelConfig) panelConfig.classList.remove("active");
     }
 
     tabToday.addEventListener("click", () => {
@@ -139,6 +146,15 @@ function setupTabs() {
         panelAnalytics.classList.add("active");
         renderVitalsCharts(); // Render/update charts
     });
+
+    if (tabConfig) {
+        tabConfig.addEventListener("click", () => {
+            deactivateAll();
+            tabConfig.classList.add("active");
+            panelConfig.classList.add("active");
+            loadActiveConfigFile();
+        });
+    }
 
     if (btnGoToPlot) {
         btnGoToPlot.addEventListener("click", () => {
@@ -437,6 +453,10 @@ function openTaskModal(item) {
     // Choose correct form based on task categories
     if (item.activity.includes("Vitals Check")) {
         document.getElementById("vitals-scheduled-time").value = item.time;
+        const actNameInput = document.getElementById("vitals-activity-name");
+        if (actNameInput) {
+            actNameInput.value = item.activity;
+        }
         document.getElementById("vital-initials").value = caregiverInit;
         document.getElementById("vital-bp").value = "";
         document.getElementById("vital-pulse").value = "";
@@ -547,6 +567,8 @@ function setupFormSubmissions() {
     // 3. Submit Clinical Vitals Form (with Numerical Bounds Validation)
     document.getElementById("btn-submit-vitals").onclick = async () => {
         const scheduledTime = document.getElementById("vitals-scheduled-time").value;
+        const actNameInput = document.getElementById("vitals-activity-name");
+        const activityName = actNameInput ? actNameInput.value : "Vitals Check: BP, Pulse, SpO2, Temp, Heart/Lung Sounds";
         const bp = document.getElementById("vital-bp").value.trim();
         const pulse = document.getElementById("vital-pulse").value.trim();
         const spo2 = document.getElementById("vital-spo2").value.trim();
@@ -603,7 +625,7 @@ function setupFormSubmissions() {
             scheduled_time: scheduledTime,
             actual_logged_time: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
             category: "Services & Daily Care Vitals",
-            activity_name: "Vitals Check: BP, Pulse, SpO2, Temp, Heart/Lung Sounds",
+            activity_name: activityName,
             logged_data_value: vitalsString,
             notes_or_status: notes || "Vitals documented successfully",
             caregiver_initials: initials
@@ -1166,4 +1188,128 @@ function renderVitalsCharts() {
             });
         }
     }
+}
+
+// Config Files Editor Implementation
+let activeConfigFile = "Name of the patient.csv";
+
+function setupConfigTab() {
+    // File selector buttons
+    const fileBtns = document.querySelectorAll(".cfg-file-btn");
+    fileBtns.forEach(btn => {
+        btn.addEventListener("click", () => {
+            fileBtns.forEach(b => b.classList.remove("active"));
+            btn.classList.add("active");
+            activeConfigFile = btn.getAttribute("data-file");
+            document.getElementById("active-file-label").textContent = activeConfigFile;
+            loadActiveConfigFile();
+        });
+    });
+
+    // Save button
+    const btnSave = document.getElementById("btn-save-config");
+    if (btnSave) {
+        btnSave.addEventListener("click", saveActiveConfigFile);
+    }
+
+    // Sync shortcut button
+    const btnSyncShortcut = document.getElementById("btn-sync-schedule-shortcut");
+    if (btnSyncShortcut) {
+        btnSyncShortcut.addEventListener("click", async () => {
+            btnSyncShortcut.disabled = true;
+            const originalHTML = btnSyncShortcut.innerHTML;
+            btnSyncShortcut.innerHTML = `🔄 Syncing...`;
+            
+            try {
+                const res = await fetch(`${API_BASE_URL}/api/update-schedule-from-files`, {
+                    method: "POST"
+                });
+                if (!res.ok) {
+                    const errData = await res.json();
+                    throw new Error(errData.detail || "Failed to sync schedule.");
+                }
+                const data = await res.json();
+                showConfigStatus(data.message, "success");
+                
+                // Reload schedule & history to update dashboard
+                await fetchSchedule();
+                await fetchHistory();
+            } catch (e) {
+                console.error(e);
+                showConfigStatus(`Error syncing: ${e.message}`, "error");
+            } finally {
+                btnSyncShortcut.disabled = false;
+                btnSyncShortcut.innerHTML = originalHTML;
+            }
+        });
+    }
+}
+
+async function loadActiveConfigFile() {
+    const editor = document.getElementById("csv-editor");
+    editor.value = "Loading CSV content...";
+    editor.disabled = true;
+    
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/config-file/${encodeURIComponent(activeConfigFile)}`);
+        if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+        const data = await res.json();
+        editor.value = data.content || "";
+        editor.disabled = false;
+    } catch (e) {
+        console.error(e);
+        editor.value = `Failed to load file: ${e.message}`;
+        showConfigStatus(`Error loading ${activeConfigFile}: ${e.message}`, "error");
+    }
+}
+
+async function saveActiveConfigFile() {
+    const btnSave = document.getElementById("btn-save-config");
+    const editor = document.getElementById("csv-editor");
+    const originalText = btnSave.innerHTML;
+    
+    btnSave.disabled = true;
+    btnSave.innerHTML = `💾 Saving...`;
+    
+    try {
+        const res = await fetch(`${API_BASE_URL}/api/config-file/${encodeURIComponent(activeConfigFile)}`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json"
+            },
+            body: JSON.stringify({ content: editor.value })
+        });
+        
+        if (!res.ok) {
+            const err = await res.json();
+            throw new Error(err.detail || "Save failed");
+        }
+        
+        showConfigStatus(`Successfully saved ${activeConfigFile}!`, "success");
+        
+        // Post-save actions based on what was edited:
+        if (activeConfigFile === "Name of the patient.csv") {
+            await fetchPatientName(); // Refresh UI patient name title
+        }
+    } catch (e) {
+        console.error(e);
+        showConfigStatus(`Error saving: ${e.message}`, "error");
+    } finally {
+        btnSave.disabled = false;
+        btnSave.innerHTML = originalText;
+    }
+}
+
+function showConfigStatus(msg, type) {
+    const statusLabel = document.getElementById("config-status-msg");
+    statusLabel.textContent = msg;
+    statusLabel.className = `status-msg ${type}`;
+    
+    // Clear message after 4 seconds
+    setTimeout(() => {
+        if (statusLabel.textContent === msg) {
+            statusLabel.textContent = "";
+            statusLabel.className = "status-msg";
+        }
+    }, 4000);
 }

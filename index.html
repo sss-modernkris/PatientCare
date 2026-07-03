@@ -21,6 +21,7 @@
                     <span class="patient-badge">ICU Care Mode</span>
                     <h1 id="patient-name-title">Sakkubhai</h1>
                     <p class="subtitle">Daily Nursing Record & Care tracker</p>
+                    <span class="version-label">v20260703-1</span>
                 </div>
                 <!-- Caregiver initials configuration -->
                 <div class="caregiver-config card">
@@ -62,6 +63,7 @@
             <button id="tab-today" class="tab-button active">Today's Care Plan</button>
             <button id="tab-history" class="tab-button">Caregiver History Logs</button>
             <button id="tab-analytics" class="tab-button">Vitals Analytics</button>
+            <button id="tab-config" class="tab-button">Configure Setup Lists</button>
         </nav>
 
         <!-- Main dashboard content panels -->
@@ -249,6 +251,48 @@
                     </div>
                 </div>
             </div>
+            
+            <!-- SETUP CONFIGURATION TAB -->
+            <div id="panel-config" class="tab-panel">
+                <div class="config-container card">
+                    <div class="config-header">
+                        <h2>Manage Setup Configuration Lists</h2>
+                        <p class="subtitle">Modify the underlying setup data used for the patient name and daily care plans</p>
+                    </div>
+                    
+                    <!-- File Selector Button Grid -->
+                    <div class="config-file-selector">
+                        <button type="button" class="cfg-file-btn active" data-file="Name of the patient.csv">Patient Name</button>
+                        <button type="button" class="cfg-file-btn" data-file="Medication-List.csv">Medication List</button>
+                        <button type="button" class="cfg-file-btn" data-file="Diet_Meak_List.csv">Diet & Meals</button>
+                        <button type="button" class="cfg-file-btn" data-file="Services_DailyCare_Vitals_List.csv">Daily Services & Vitals</button>
+                    </div>
+                    
+                    <!-- Editor Area -->
+                    <div class="editor-section">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem;">
+                            <label for="csv-editor" class="editor-label">File Editor: <span id="active-file-label" class="font-mono text-cyan-600">Name of the patient.csv</span></label>
+                            <span class="csv-validation-hint">First line must contain headers</span>
+                        </div>
+                        <textarea id="csv-editor" spellcheck="false" placeholder="Loading CSV content..."></textarea>
+                    </div>
+                    
+                    <!-- Actions Area -->
+                    <div class="config-actions">
+                        <div class="status-msg-container">
+                            <span id="config-status-msg" class="status-msg"></span>
+                        </div>
+                        <div class="action-buttons-wrap" style="display: flex; gap: 0.75rem;">
+                            <button id="btn-save-config" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="save-icon">💾</span> Save File Changes
+                            </button>
+                            <button id="btn-sync-schedule-shortcut" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem;">
+                                <span class="sync-icon">🔄</span> Sync Active Care Schedule
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
         </main>
     </div>
 
@@ -297,6 +341,7 @@
             </div>
             <div class="modal-body">
                 <input type="hidden" id="vitals-scheduled-time">
+                <input type="hidden" id="vitals-activity-name">
                 <div class="vitals-grid">
                     <div class="form-group">
                         <label for="vital-bp">Blood Pressure (mmHg)</label>
@@ -428,6 +473,6 @@
 
     <!-- Notification Sound Synthesizer Element -->
     <div class="hidden-alert-trigger"></div>
-    <script src="app.js"></script>
+    <script src="app.js?v=20260703-1"></script>
 </body>
 </html>

@@ -9,27 +9,14 @@ def verify_care_tracker():
     output_dir = os.path.join(base_dir, "images")
     os.makedirs(output_dir, exist_ok=True)
     
-    csv_path = os.path.join(base_dir, "daily_medical_logs.csv")
+    csv_path = os.path.join(base_dir, "test_daily_medical_logs.csv")
+    
+    # Clean up test file if it exists from a previous crash
     if os.path.exists(csv_path):
-        print("Filtering out today's logs from daily_medical_logs.csv to allow test to run...")
-        import datetime
-        today_str = datetime.date.today().strftime("%Y-%m-%d")
-        temp_rows = []
         try:
-            with open(csv_path, mode='r', encoding='utf-8') as f:
-                reader = csv.reader(f)
-                header = next(reader, None)
-                if header:
-                    temp_rows.append(header)
-                    for row in reader:
-                        if len(row) > 0 and row[0] != today_str:
-                            temp_rows.append(row)
-            with open(csv_path, mode='w', newline='', encoding='utf-8') as f:
-                writer = csv.writer(f)
-                writer.writerows(temp_rows)
-            print(f"Removed today's entries ({today_str}) to ensure fresh logging.")
+            os.remove(csv_path)
         except Exception as e:
-            print(f"Error preparing csv file: {e}")
+            print(f"Error removing old test file: {e}")
         
     # Use the Python interpreter from the existing StockPicker virtualenv
     python_exe = r"C:\Users\moder\AntiGravity\StockPickerStrategies-20260610\backend\.venv\Scripts\python.exe"
@@ -43,20 +30,24 @@ def verify_care_tracker():
 
     launched_server = False
     server_process = None
-    if not is_port_active(8000):
-        print(f"Launching FastAPI backend with {python_exe}...")
+    if not is_port_active(8180):
+        print(f"Launching FastAPI backend on port 8180 with {python_exe}...")
+        env = os.environ.copy()
+        env["PORT"] = "8180"
+        env["CSV_FILE_NAME"] = "test_daily_medical_logs.csv"
         server_process = subprocess.Popen(
             [python_exe, "main.py"],
             cwd=base_dir,
             stdout=subprocess.DEVNULL,
             stderr=subprocess.DEVNULL,
-            text=True
+            text=True,
+            env=env
         )
         launched_server = True
         # Wait for server to start
         time.sleep(3)
     else:
-        print("FastAPI backend is already running on port 8000, reusing it.")
+        print("FastAPI backend is already running on port 8180, reusing it.")
     
     with sync_playwright() as p:
         print("Launching browser...")
@@ -64,12 +55,12 @@ def verify_care_tracker():
         page = browser.new_page()
         page.set_viewport_size({"width": 1280, "height": 960})
         
-        print("Navigating to http://localhost:8000...")
+        print("Navigating to http://localhost:8180...")
         # Listen for console logs
         page.on("console", lambda msg: print(f"BROWSER CONSOLE: {msg.text}"))
         
         try:
-            page.goto("http://localhost:8000", wait_until="networkidle", timeout=15000)
+            page.goto("http://localhost:8180", wait_until="networkidle", timeout=15000)
             print("Page loaded successfully.")
         except Exception as e:
             print("Failed to load page: ", e)
@@ -173,21 +164,31 @@ def verify_care_tracker():
         browser.close()
         
     # Shutdown server
-    print("Terminating backend server process...")
-    server_process.terminate()
-    server_process.wait()
+    if launched_server and server_process:
+        print("Terminating backend server process...")
+        server_process.terminate()
+        server_process.wait()
     
     # Assert CSV exists and verify entries
     if os.path.exists(csv_path):
-        print("SUCCESS: daily_medical_logs.csv successfully created!")
+        print("SUCCESS: test_daily_medical_logs.csv successfully created!")
         with open(csv_path, mode='r', encoding='utf-8') as f:
             reader = csv.reader(f)
             rows = list(reader)
             print(f"CSV total rows (including header): {len(rows)}")
             for idx, r in enumerate(rows):
                 print(f"Row {idx}: {r}")
+                
+        # Clean up test file
+        print("Cleaning up test file...")
+        try:
+            if os.path.exists(csv_path):
+                os.remove(csv_path)
+            print("Cleanup complete. Test CSV file removed.")
+        except Exception as e:
+            print(f"Error during cleanup: {e}")
     else:
-        print("FAILURE: daily_medical_logs.csv was not created.")
+        print("FAILURE: test_daily_medical_logs.csv was not created.")
 
 if __name__ == "__main__":
     verify_care_tracker()

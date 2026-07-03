@@ -5,3 +5,14 @@ Date,Scheduled_Time,Actual_Logged_Time,Category,Activity_Name,Logged_Data_Value,
 2026-07-02,07:00 AM,12:54 PM,Medication (TAB),PAN -40-MG,Done,Taken with warm water before meals,R.Y.
 2026-07-02,09:00 PM,12:54 PM,Services & Daily Care Vitals,PM Spirometry,Done,Patient completed 3 rounds,R.Y.
 2026-07-02,08:00 AM,12:54 PM,Services & Daily Care Vitals,"Vitals Check: BP, Pulse, SpO2, Temp, Heart/Lung Sounds",BP: 124/68 | HR: 76 | SpO2: 99% | T: 98.2°F | Sounds: Normal,"Regular vitals check, clear lungs",R.Y.
+2026-07-02,05:00 PM,05:31 PM,Services & Daily Care Vitals,"Vitals Check: BP, Pulse, SpO2, Temp, Heart/Lung Sounds",BP: 120/80 | HR: 70 | SpO2: 98% | T: 98.6°F | Sounds: Normal,Nebulizer administered right after,K
+2026-07-02,08:00 AM,08:24 PM,Services & Daily Care Vitals,"Vitals Check: BP, Pulse, SpO2, Temp, Heart/Lung Sounds",BP: 130/90 | HR: 74 | SpO2: 98% | T: 98.6°F | Sounds: Normal,Vitals documented successfully,K
+2026-07-02,N/A,08:28 PM,Special Note,Special Note,Note,Weather is hot 100deg today,K
+2026-07-02,N/A,08:28 PM,Special Note,Special Note,Note,It is also raining now.,K
+2026-07-02,08:30 PM,08:30 PM,Diet & Meals,Dinner,Good,Ate Rice and curries,K
+2026-07-03,08:00 AM,05:29 AM,Services & Daily Care Vitals,"Vitals Check: BP, Pulse, SpO2, Temp, Heart/Lung Sounds",BP: 139/90 | HR: 72 | SpO2: 98% | T: 98.6°F | Sounds: Normal,Vitals documented successfully,K
+2026-07-03,07:00 AM,12:40 PM,Medication (TAB),PAN -40-MG,Done,Patient took with warm water. Done,K
+2026-07-03,08:00 AM,12:40 PM,Services & Daily Care Vitals,"Vitals Check: BP, Pulse, SpO2, Temp, Heart/Lung Sounds",BP: 130/90 | HR: 72 | SpO2: 98% | T: 98.6°F | Sounds: Normal,Vitals documented successfully,K
+2026-07-03,08:00 AM,12:42 PM,Services & Daily Care Vitals,"Vitals Check: BP, Pulse, SpO2, Temp, Heart/Lung Sounds",BP: 130/90 | HR: 72 | SpO2: 98% | T: 98.6°F | Sounds: Normal,Neb administered,K
+2026-07-03,09:30 AM,12:43 PM,Diet & Meals,Breakfast,Good,Ate bowl of fruit,K
+2026-07-03,08:00 AM,12:49 PM,Services & Daily Care Vitals,Vitals Check: BP / Pulse / SpO2 / Temperature / Heart/Lung Sounds,BP: 130/90 | HR: 72 | SpO2: 98% | T: 98.6°F | Sounds: Normal,Vitals documented successfully,K
