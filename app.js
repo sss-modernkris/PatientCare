@@ -1,6 +1,6 @@
 // Client-side Application Logic for Care Tracker
 
-const API_BASE_URL = "http://localhost:8000";
+const API_BASE_URL = window.location.origin;
 
 // App state
 let activeCaregiver = "";
@@ -11,12 +11,228 @@ let activeFilters = {};
 let currentFilterColumn = "";
 let vitalsCharts = { bp: null, hr: null, spo2: null, temp: null };
 
+// Baseline schedule dataset
+const BASELINE_SCHEDULE = [
+    {"category": "Medication (TAB)", "activity": "PAN -40-MG", "time": "07:00 AM"},
+    {"category": "Medication (TAB)", "activity": "THYRONORM - 100MCG", "time": "07:00 AM"},
+    {"category": "Medication (TAB)", "activity": "CLOMONT-AD", "time": "08:00 AM"},
+    {"category": "Medication (TAB)", "activity": "CLOMONT-AD", "time": "08:00 PM"},
+    {"category": "Medication (TAB)", "activity": "MYNU-CT", "time": "10:00 AM"},
+    {"category": "Medication (TAB)", "activity": "IVABRADINE-5", "time": "10:00 AM"},
+    {"category": "Medication (TAB)", "activity": "DYPORYLUS", "time": "10:00 AM"},
+    {"category": "Medication (TAB)", "activity": "Atoz - CU", "time": "02:00 PM"},
+    {"category": "Medication (TAB)", "activity": "DYTOR-5", "time": "04:00 PM"},
+    {"category": "Medication (TAB)", "activity": "PREGABAN-5", "time": "02:00 PM"},
+    {"category": "Medication (TAB)", "activity": "CLOLIFE", "time": "02:00 PM"},
+    {"category": "Medication (TAB)", "activity": "ATORFIT-AD", "time": "08:00 PM"},
+    {"category": "Medication (TAB)", "activity": "Doxyclock", "time": "08:00 AM"},
+    {"category": "Medication (TAB)", "activity": "Doxyclock", "time": "08:00 PM"},
+    {"category": "Medication (TAB)", "activity": "Acetnama Syrup", "time": "08:00 AM"},
+    {"category": "Medication (TAB)", "activity": "Acetnama Syrup", "time": "08:00 PM"},
+    {"category": "Diet & Meals", "activity": "Tea & Biscuits", "time": "08:00 AM"},
+    {"category": "Diet & Meals", "activity": "Breakfast", "time": "09:30 AM"},
+    {"category": "Diet & Meals", "activity": "Lunch + Sweet", "time": "01:30 PM"},
+    {"category": "Diet & Meals", "activity": "Tea & Biscuits", "time": "05:30 PM"},
+    {"category": "Diet & Meals", "activity": "Dinner", "time": "08:30 PM"},
+    {"category": "Services & Daily Care Vitals", "activity": "Bath / Teeth Brushing / Hair Combing", "time": "09:00 AM"},
+    {"category": "Services & Daily Care Vitals", "activity": "Clothes Change", "time": "10:00 AM"},
+    {"category": "Services & Daily Care Vitals", "activity": "Exercises", "time": "09:00 AM"},
+    {"category": "Services & Daily Care Vitals", "activity": "Exercises", "time": "08:00 PM"},
+    {"category": "Services & Daily Care Vitals", "activity": "Spirometry", "time": "09:00 PM"},
+    {"category": "Services & Daily Care Vitals", "activity": "Chest Physio", "time": "10:00 PM"},
+    {"category": "Services & Daily Care Vitals", "activity": "Massage / Nebulizer", "time": "Flexible"},
+    {"category": "Services & Daily Care Vitals", "activity": "Vitals Check: BP / Pulse / SpO2 / Temperature / Heart/Lung Sounds", "time": "08:00 AM"},
+    {"category": "Services & Daily Care Vitals", "activity": "Vitals Check: BP / Pulse / SpO2 / Temperature / Heart/Lung Sounds", "time": "05:00 PM"}
+];
+
+// Baseline history logs
+const BASELINE_HISTORY = [
+  { Date: "2026-07-01", Scheduled_Time: "08:00 AM", Actual_Logged_Time: "12:54 PM", Category: "Services & Daily Care Vitals", Activity_Name: "Vitals Check: BP, Pulse, SpO2, Temp, Heart/Lung Sounds", Logged_Data_Value: "BP: 134/68 | HR: 80 | SpO2: 99% | T: 98.2°F | Sounds: Normal", Notes_or_Status: "Regular vitals check, clear lungs", Caregiver_Initials: "R.Y." },
+  { Date: "2026-07-01", Scheduled_Time: "07:00 AM", Actual_Logged_Time: "11:59 AM", Category: "Medication (TAB)", Activity_Name: "PAN -40-MG", Logged_Data_Value: "Done", Notes_or_Status: "Taken with warm water before meals", Caregiver_Initials: "R.Y." },
+  { Date: "2026-07-01", Scheduled_Time: "09:00 PM", Actual_Logged_Time: "11:59 AM", Category: "Services & Daily Care Vitals", Activity_Name: "PM Spirometry", Logged_Data_Value: "Done", Notes_or_Status: "Patient completed 3 rounds", Caregiver_Initials: "R.Y." },
+  { Date: "2026-07-02", Scheduled_Time: "07:00 AM", Actual_Logged_Time: "12:54 PM", Category: "Medication (TAB)", Activity_Name: "PAN -40-MG", Logged_Data_Value: "Done", Notes_or_Status: "Taken with warm water before meals", Caregiver_Initials: "R.Y." },
+  { Date: "2026-07-02", Scheduled_Time: "09:00 PM", Actual_Logged_Time: "12:54 PM", Category: "Services & Daily Care Vitals", Activity_Name: "PM Spirometry", Logged_Data_Value: "Done", Notes_or_Status: "Patient completed 3 rounds", Caregiver_Initials: "R.Y." },
+  { Date: "2026-07-02", Scheduled_Time: "08:00 AM", Actual_Logged_Time: "12:54 PM", Category: "Services & Daily Care Vitals", Activity_Name: "Vitals Check: BP, Pulse, SpO2, Temp, Heart/Lung Sounds", Logged_Data_Value: "BP: 124/68 | HR: 76 | SpO2: 99% | T: 98.2°F | Sounds: Normal", Notes_or_Status: "Regular vitals check, clear lungs", Caregiver_Initials: "R.Y." },
+  { Date: "2026-07-02", Scheduled_Time: "05:00 PM", Actual_Logged_Time: "05:31 PM", Category: "Services & Daily Care Vitals", Activity_Name: "Vitals Check: BP, Pulse, SpO2, Temp, Heart/Lung Sounds", Logged_Data_Value: "BP: 120/80 | HR: 70 | SpO2: 98% | T: 98.6°F | Sounds: Normal", Notes_or_Status: "Nebulizer administered right after", Caregiver_Initials: "K" },
+  { Date: "2026-07-02", Scheduled_Time: "08:00 AM", Actual_Logged_Time: "08:24 PM", Category: "Services & Daily Care Vitals", Activity_Name: "Vitals Check: BP, Pulse, SpO2, Temp, Heart/Lung Sounds", Logged_Data_Value: "BP: 130/90 | HR: 74 | SpO2: 98% | T: 98.6°F | Sounds: Normal", Notes_or_Status: "Vitals documented successfully", Caregiver_Initials: "K" },
+  { Date: "2026-07-02", Scheduled_Time: "N/A", Actual_Logged_Time: "08:28 PM", Category: "Special Note", Activity_Name: "Special Note", Logged_Data_Value: "Note", Notes_or_Status: "Weather is hot 100deg today", Caregiver_Initials: "K" },
+  { Date: "2026-07-02", Scheduled_Time: "N/A", Actual_Logged_Time: "08:28 PM", Category: "Special Note", Activity_Name: "Special Note", Logged_Data_Value: "Note", Notes_or_Status: "It is also raining now.", Caregiver_Initials: "K" },
+  { Date: "2026-07-02", Scheduled_Time: "08:30 PM", Actual_Logged_Time: "08:30 PM", Category: "Diet & Meals", Activity_Name: "Dinner", Logged_Data_Value: "Good", Notes_or_Status: "Ate Rice and curries", Caregiver_Initials: "K" },
+  { Date: "2026-07-03", Scheduled_Time: "08:00 AM", Actual_Logged_Time: "05:29 AM", Category: "Services & Daily Care Vitals", Activity_Name: "Vitals Check: BP, Pulse, SpO2, Temp, Heart/Lung Sounds", Logged_Data_Value: "BP: 139/90 | HR: 72 | SpO2: 98% | T: 98.6°F | Sounds: Normal", Notes_or_Status: "Vitals documented successfully", Caregiver_Initials: "K" },
+  { Date: "2026-07-03", Scheduled_Time: "07:00 AM", Actual_Logged_Time: "12:40 PM", Category: "Medication (TAB)", Activity_Name: "PAN -40-MG", Logged_Data_Value: "Done", Notes_or_Status: "Patient took with warm water. Done", Caregiver_Initials: "K" },
+  { Date: "2026-07-03", Scheduled_Time: "08:00 AM", Actual_Logged_Time: "12:40 PM", Category: "Services & Daily Care Vitals", Activity_Name: "Vitals Check: BP, Pulse, SpO2, Temp, Heart/Lung Sounds", Logged_Data_Value: "BP: 130/90 | HR: 72 | SpO2: 98% | T: 98.6°F | Sounds: Normal", Notes_or_Status: "Vitals documented successfully", Caregiver_Initials: "K" },
+  { Date: "2026-07-03", Scheduled_Time: "08:00 AM", Actual_Logged_Time: "12:42 PM", Category: "Services & Daily Care Vitals", Activity_Name: "Vitals Check: BP, Pulse, SpO2, Temp, Heart/Lung Sounds", Logged_Data_Value: "BP: 130/90 | HR: 72 | SpO2: 98% | T: 98.6°F | Sounds: Normal", Notes_or_Status: "Neb administered", Caregiver_Initials: "K" },
+  { Date: "2026-07-03", Scheduled_Time: "09:30 AM", Actual_Logged_Time: "12:43 PM", Category: "Diet & Meals", Activity_Name: "Breakfast", Logged_Data_Value: "Good", Notes_or_Status: "Ate bowl of fruit", Caregiver_Initials: "K" },
+  { Date: "2026-07-03", Scheduled_Time: "08:00 AM", Actual_Logged_Time: "12:49 PM", Category: "Services & Daily Care Vitals", Activity_Name: "Vitals Check: BP / Pulse / SpO2 / Temperature / Heart/Lung Sounds", Logged_Data_Value: "BP: 130/90 | HR: 72 | SpO2: 98% | T: 98.6°F | Sounds: Normal", Notes_or_Status: "Vitals documented successfully", Caregiver_Initials: "K" },
+  { Date: "2026-07-03", Scheduled_Time: "07:00 AM", Actual_Logged_Time: "01:08 PM", Category: "Medication (TAB)", Activity_Name: "THYRONORM - 100MCG", Logged_Data_Value: "Done", Notes_or_Status: "Patient took with warm water.", Caregiver_Initials: "KD" }
+];
+
+// Baseline config files content
+const BASELINE_CONFIGS = {
+    "Name of the patient.csv": "Patient Name\nSakkubhai",
+    "Medication-List.csv": "Medication Name,Scheduled Time\nPAN -40-MG,07:00 AM\nTHYRONORM - 100MCG,07:00 AM\nCLOMONT-AD,08:00 AM\nCLOMONT-AD,08:00 PM\nMYNU-CT,10:00 AM\nIVABRADINE-5,10:00 AM\nDYPORYLUS,10:00 AM\nAtoz - CU,02:00 PM\nDYTOR-5,04:00 PM\nPREGABAN-5,02:00 PM\nCLOLIFE,02:00 PM\nATORFIT-AD,08:00 PM\nDoxyclock,08:00 AM\nDoxyclock,08:00 PM\nAcetnama Syrup,08:00 AM\nAcetnama Syrup,08:00 PM",
+    "Diet_Meak_List.csv": "Diet & Meals Activity,Scheduled Time\nTea & Biscuits,08:00 AM\nBreakfast,09:30 AM\nLunch + Sweet,01:30 PM\nTea & Biscuits,05:30 PM\nDinner,08:30 PM",
+    "Services_DailyCare_Vitals_List.csv": "Service / Vital Check,Scheduled Time\nBath / Teeth Brushing / Hair Combing,09:00 AM\nClothes Change,10:00 AM\nExercises,09:00 AM\nExercises,08:00 PM\nSpirometry,09:00 PM\nChest Physio,10:00 PM\nMassage / Nebulizer,Flexible\nVitals Check: BP / Pulse / SpO2 / Temperature / Heart/Lung Sounds,08:00 AM\nVitals Check: BP / Pulse / SpO2 / Temperature / Heart/Lung Sounds,05:00 PM"
+};
+
 // DOM Elements
 const globalCaregiverInput = document.getElementById("global-caregiver");
 const progressPercentage = document.getElementById("progress-percentage");
 const progressFill = document.getElementById("progress-fill");
 const taskCompletedCount = document.getElementById("task-completed-count");
 const currentTimeDisplay = document.getElementById("current-time-display");
+
+// Client-side CSV Parser Helper
+function parseCSV(text) {
+    const lines = text.split("\n").map(l => l.trim()).filter(Boolean);
+    const rows = [];
+    lines.forEach(line => {
+        const cols = [];
+        let current = "";
+        let inQuotes = false;
+        for (let i = 0; i < line.length; i++) {
+            const char = line[i];
+            if (char === '"') {
+                inQuotes = !inQuotes;
+            } else if (char === ',' && !inQuotes) {
+                cols.push(current.trim().replace(/^["']|["']$/g, ""));
+                current = "";
+            } else {
+                current += char;
+            }
+        }
+        cols.push(current.trim().replace(/^["']|["']$/g, ""));
+        rows.push(cols);
+    });
+    return rows;
+}
+
+// Client-side Schedule Generation
+function parseScheduleFiles() {
+    const newSchedule = [];
+    
+    const normalizeTime = (timeStr) => {
+        timeStr = timeStr.trim();
+        if (!timeStr) return "";
+        if (timeStr.toLowerCase().includes("flexible")) return "Flexible";
+        const match = timeStr.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
+        if (match) {
+            let hours = parseInt(match[1]);
+            const minutes = match[2];
+            const ampm = match[3] ? match[3].toUpperCase() : "AM";
+            return `${String(hours).padStart(2, '0')}:${minutes} ${ampm}`;
+        }
+        return timeStr;
+    };
+    
+    const parseFile = (filename, category) => {
+        const storageKey = `config_file_${filename}`;
+        let content = localStorage.getItem(storageKey);
+        if (!content) {
+            content = BASELINE_CONFIGS[filename];
+            localStorage.setItem(storageKey, content);
+        }
+        const rows = parseCSV(content);
+        for (let i = 1; i < rows.length; i++) {
+            const row = rows[i];
+            if (row.length >= 2 && row[0].trim() && row[1].trim()) {
+                newSchedule.push({
+                    category: category,
+                    activity: row[0].trim(),
+                    time: normalizeTime(row[1])
+                });
+            }
+        }
+    };
+    
+    parseFile("Medication-List.csv", "Medication (TAB)");
+    parseFile("Diet_Meak_List.csv", "Diet & Meals");
+    parseFile("Services_DailyCare_Vitals_List.csv", "Services & Daily Care Vitals");
+    
+    return newSchedule;
+}
+
+// Client-side Care Log Normalizer
+function normalizeLogEntry(log) {
+    if (!log) return {};
+    return {
+        Date: log.Date || log.date || "",
+        Scheduled_Time: log.Scheduled_Time || log.scheduled_time || "",
+        Actual_Logged_Time: log.Actual_Logged_Time || log.actual_logged_time || "",
+        Category: log.Category || log.category || "",
+        Activity_Name: log.Activity_Name || log.activity_name || "",
+        Logged_Data_Value: log.Logged_Data_Value || log.logged_data_value || "",
+        Notes_or_Status: log.Notes_or_Status || log.notes_or_status || "",
+        Caregiver_Initials: log.Caregiver_Initials || log.caregiver_initials || ""
+    };
+}
+
+// Client-side CSV Exporter Utility
+function convertLogsToCSV(logs) {
+    const headers = [
+        "Date", "Scheduled_Time", "Actual_Logged_Time", "Category", 
+        "Activity_Name", "Logged_Data_Value", "Notes_or_Status", "Caregiver_Initials"
+    ];
+    
+    const escapeCSV = (val) => {
+        if (val === undefined || val === null) return "";
+        const str = String(val);
+        if (str.includes(",") || str.includes('"') || str.includes("\n")) {
+            return `"${str.replace(/"/g, '""')}"`;
+        }
+        return str;
+    };
+    
+    const rows = [headers.join(",")];
+    logs.forEach(log => {
+        const norm = normalizeLogEntry(log);
+        const row = [
+            escapeCSV(norm.Date),
+            escapeCSV(norm.Scheduled_Time),
+            escapeCSV(norm.Actual_Logged_Time),
+            escapeCSV(norm.Category),
+            escapeCSV(norm.Activity_Name),
+            escapeCSV(norm.Logged_Data_Value),
+            escapeCSV(norm.Notes_or_Status),
+            escapeCSV(norm.Caregiver_Initials)
+        ];
+        rows.push(row.join(","));
+    });
+    
+    return rows.join("\r\n");
+}
+
+function downloadLogsCSV() {
+    const csvContent = convertLogsToCSV(historyLogs);
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "daily_medical_logs.csv");
+    link.style.visibility = 'hidden';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function parsePatientNameFromCSV(csvText) {
+    const lines = csvText.split("\n").map(l => l.trim()).filter(Boolean);
+    if (lines.length > 0) {
+        const header = lines[0].split(",").map(c => c.trim().replace(/^["']|["']$/g, ""));
+        if (header.length > 0) {
+            const colName = header[0];
+            if (colName.toLowerCase() in { "name": 1, "patient name": 1, "patient_name": 1 } && lines.length > 1) {
+                const firstRow = lines[1].split(",").map(c => c.trim().replace(/^["']|["']$/g, ""));
+                if (firstRow.length > 0 && firstRow[0]) {
+                    return firstRow[0];
+                }
+            }
+            return colName;
+        }
+    }
+    return "Sakkubhai";
+}
 
 // Initialize application
 document.addEventListener("DOMContentLoaded", () => {
@@ -67,6 +283,16 @@ async function initApp() {
 
     // 11. Setup Config Files editing tab
     setupConfigTab();
+
+    // 12. Setup Download CSV buttons
+    const btnDownloadHeader = document.getElementById("btn-download-csv-header");
+    if (btnDownloadHeader) {
+        btnDownloadHeader.addEventListener("click", downloadLogsCSV);
+    }
+    const btnDownloadHistory = document.getElementById("btn-download-csv-history");
+    if (btnDownloadHistory) {
+        btnDownloadHistory.addEventListener("click", downloadLogsCSV);
+    }
 }
 
 // Bind sync schedule button handler
@@ -80,19 +306,42 @@ function setupSyncScheduleButton() {
         btnSync.innerHTML = `<span class="sync-icon animate-spin">🔄</span> Syncing...`;
         
         try {
-            const res = await fetch(`${API_BASE_URL}/api/update-schedule-from-files`, {
-                method: "POST"
-            });
-            if (!res.ok) {
-                const errData = await res.json();
-                throw new Error(errData.detail || "Failed to sync schedule.");
+            const files = ["Medication-List.csv", "Diet_Meak_List.csv", "Services_DailyCare_Vitals_List.csv"];
+            for (const file of files) {
+                const storageKey = `config_file_${file}`;
+                if (localStorage.getItem(storageKey) === null) {
+                    try {
+                        const res = await fetch(`${API_BASE_URL}/api/config-file/${encodeURIComponent(file)}`);
+                        if (res.ok) {
+                            const data = await res.json();
+                            localStorage.setItem(storageKey, data.content || "");
+                        }
+                    } catch (e) {
+                        console.warn(`Could not seed file ${file} from server:`, e);
+                    }
+                    if (localStorage.getItem(storageKey) === null) {
+                        localStorage.setItem(storageKey, BASELINE_CONFIGS[file]);
+                    }
+                }
             }
             
-            const data = await res.json();
-            alert(data.message);
+            const newSchedule = parseScheduleFiles();
+            if (!newSchedule || newSchedule.length === 0) {
+                throw new Error("No schedule items could be parsed from the files.");
+            }
             
-            // Reload schedule and history, then re-render dashboard
-            await fetchSchedule();
+            localStorage.setItem("care_schedule", JSON.stringify(newSchedule));
+            scheduleItems = newSchedule;
+            
+            try {
+                await fetch(`${API_BASE_URL}/api/update-schedule-from-files`, {
+                    method: "POST"
+                });
+            } catch (e) {
+                console.warn("Backend schedule sync skipped:", e);
+            }
+            
+            alert("Successfully updated schedule from files.");
             await fetchHistory();
         } catch (e) {
             console.error(e);
@@ -172,63 +421,91 @@ function updateClock() {
     currentTimeDisplay.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
 }
 
-// Fetch default schedule from backend API
+// Fetch default schedule from backend API / LocalStorage
 async function fetchPatientName() {
-    try {
-        const res = await fetch(`${API_BASE_URL}/api/patient-name`);
-        if (res.ok) {
-            const data = await res.json();
-            if (data.name) {
-                const titleElem = document.getElementById("patient-name-title");
-                if (titleElem) {
-                    titleElem.textContent = data.name;
-                }
-                document.title = `${data.name} - Patient Care Log & Tracker`;
+    let name = localStorage.getItem("patient_name");
+    if (!name) {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/patient-name`);
+            if (res.ok) {
+                const data = await res.json();
+                name = data.name;
+                localStorage.setItem("patient_name", name);
+            } else {
+                throw new Error("Server error");
             }
+        } catch (e) {
+            console.error("Failed to fetch patient name from server:", e);
+            name = "Sakkubhai";
+            localStorage.setItem("patient_name", name);
         }
-    } catch (e) {
-        console.error("Failed to fetch patient name:", e);
     }
+    const titleElem = document.getElementById("patient-name-title");
+    if (titleElem) {
+        titleElem.textContent = name;
+    }
+    document.title = `${name} - Patient Care Log & Tracker`;
 }
 
 async function fetchSchedule() {
-    try {
-        const res = await fetch(`${API_BASE_URL}/api/schedule`);
-        if (!res.ok) throw new Error("Could not load care schedule dataset.");
-        const data = await res.json();
-        scheduleItems = data.schedule || [];
-    } catch (e) {
-        console.error(e);
-        alert("Server connection failed. Make sure the FastAPI app is running.");
+    let schedule = localStorage.getItem("care_schedule");
+    if (schedule) {
+        scheduleItems = JSON.parse(schedule);
+    } else {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/schedule`);
+            if (res.ok) {
+                const data = await res.json();
+                scheduleItems = data.schedule || [];
+                localStorage.setItem("care_schedule", JSON.stringify(scheduleItems));
+            } else {
+                throw new Error("Server error");
+            }
+        } catch (e) {
+            console.error(e);
+            scheduleItems = BASELINE_SCHEDULE;
+            localStorage.setItem("care_schedule", JSON.stringify(scheduleItems));
+        }
     }
 }
 
 // Fetch historical log CSV rows and calculate daily progress
 async function fetchHistory() {
-    try {
-        const res = await fetch(`${API_BASE_URL}/api/history`);
-        if (!res.ok) throw new Error("Could not fetch CSV logs.");
-        const data = await res.json();
-        historyLogs = data.logs || [];
-        
-        // Populate completion checklist set for today
-        const todayStr = getTodayString();
-        completedTasks.clear();
-        
-        historyLogs.forEach(log => {
-            if (log.Date === todayStr) {
-                // Done status
-                completedTasks.add(`${log.Activity_Name}_${log.Scheduled_Time}`);
+    let history = localStorage.getItem("care_history_logs");
+    if (history) {
+        historyLogs = JSON.parse(history).map(normalizeLogEntry);
+    } else {
+        try {
+            const res = await fetch(`${API_BASE_URL}/api/history`);
+            if (res.ok) {
+                const data = await res.json();
+                historyLogs = (data.logs || []).map(normalizeLogEntry);
+                localStorage.setItem("care_history_logs", JSON.stringify(historyLogs));
+            } else {
+                throw new Error("Server error");
             }
-        });
-        
-        // Rerender layout
-        renderSchedule();
-        renderHistoryTable();
-        calculateProgress();
-    } catch (e) {
-        console.error(e);
+        } catch (e) {
+            console.error(e);
+            historyLogs = BASELINE_HISTORY.map(normalizeLogEntry);
+            localStorage.setItem("care_history_logs", JSON.stringify(historyLogs));
+        }
     }
+    
+    // Populate completion checklist set for today
+    const todayStr = getTodayString();
+    completedTasks.clear();
+    
+    historyLogs.forEach(log => {
+        const norm = normalizeLogEntry(log);
+        if (norm.Date === todayStr) {
+            completedTasks.add(`${norm.Activity_Name}_${norm.Scheduled_Time}`);
+        }
+    });
+    
+    // Rerender layout
+    renderSchedule();
+    renderHistoryTable();
+    calculateProgress();
 }
 
 // Render schedule tasks grouped by categories
@@ -352,12 +629,12 @@ function isItemOverdue(scheduledTimeStr) {
 // Parses string like "08:00 AM" or "08:30 PM" into active Date object
 function parseTimeStr(timeStr) {
     const now = new Date();
-    const match = timeStr.match(/^(\d{2}):(\d{2})\s*(AM|PM)$/i);
-    if (!match) return now;
+    const match = timeStr.match(/^(\d{1,2}):(\d{2})(?::\d{2})?\s*(AM|PM)?$/i);
+    if (!match) return new Date(1970, 0, 1);
     
     let hours = parseInt(match[1]);
     const minutes = parseInt(match[2]);
-    const ampm = match[3].toUpperCase();
+    const ampm = match[3] ? match[3].toUpperCase() : "";
     
     if (ampm === "PM" && hours < 12) hours += 12;
     if (ampm === "AM" && hours === 12) hours = 0;
@@ -666,18 +943,31 @@ function setupFormSubmissions() {
     }
 }
 
-// POST transaction call to server to append log to local CSV file
+// Save log entry to localStorage and sync in the background
 async function submitLogEntry(payload, modalId) {
     try {
-        const res = await fetch(`${API_BASE_URL}/api/log`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json"
-            },
-            body: JSON.stringify(payload)
-        });
+        let logs = [];
+        try {
+            logs = JSON.parse(localStorage.getItem("care_history_logs")) || [];
+        } catch (e) {
+            logs = [];
+        }
+        const normalized = normalizeLogEntry(payload);
+        logs.push(normalized);
+        localStorage.setItem("care_history_logs", JSON.stringify(logs));
         
-        if (!res.ok) throw new Error("Failed to save log entry.");
+        // Background sync to backend if available
+        try {
+            await fetch(`${API_BASE_URL}/api/log`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(payload)
+            });
+        } catch (e) {
+            console.warn("Backend log sync skipped:", e);
+        }
         
         // Sync active initials to top config input
         if (payload.caregiver_initials) {
@@ -1221,18 +1511,22 @@ function setupConfigTab() {
             btnSyncShortcut.innerHTML = `🔄 Syncing...`;
             
             try {
-                const res = await fetch(`${API_BASE_URL}/api/update-schedule-from-files`, {
-                    method: "POST"
-                });
-                if (!res.ok) {
-                    const errData = await res.json();
-                    throw new Error(errData.detail || "Failed to sync schedule.");
+                const newSchedule = parseScheduleFiles();
+                if (!newSchedule || newSchedule.length === 0) {
+                    throw new Error("No schedule items could be parsed.");
                 }
-                const data = await res.json();
-                showConfigStatus(data.message, "success");
+                localStorage.setItem("care_schedule", JSON.stringify(newSchedule));
+                scheduleItems = newSchedule;
                 
-                // Reload schedule & history to update dashboard
-                await fetchSchedule();
+                try {
+                    await fetch(`${API_BASE_URL}/api/update-schedule-from-files`, {
+                        method: "POST"
+                    });
+                } catch (e) {
+                    console.warn("Backend schedule sync skipped:", e);
+                }
+                
+                showConfigStatus("Successfully synced schedule!", "success");
                 await fetchHistory();
             } catch (e) {
                 console.error(e);
@@ -1250,16 +1544,28 @@ async function loadActiveConfigFile() {
     editor.value = "Loading CSV content...";
     editor.disabled = true;
     
+    const storageKey = `config_file_${activeConfigFile}`;
+    let content = localStorage.getItem(storageKey);
+    if (content !== null) {
+        editor.value = content;
+        editor.disabled = false;
+        return;
+    }
+    
     try {
         const res = await fetch(`${API_BASE_URL}/api/config-file/${encodeURIComponent(activeConfigFile)}`);
         if (!res.ok) throw new Error(`HTTP error ${res.status}`);
         const data = await res.json();
-        editor.value = data.content || "";
+        content = data.content || "";
+        localStorage.setItem(storageKey, content);
+        editor.value = content;
         editor.disabled = false;
     } catch (e) {
         console.error(e);
-        editor.value = `Failed to load file: ${e.message}`;
-        showConfigStatus(`Error loading ${activeConfigFile}: ${e.message}`, "error");
+        content = BASELINE_CONFIGS[activeConfigFile] || "";
+        localStorage.setItem(storageKey, content);
+        editor.value = content;
+        editor.disabled = false;
     }
 }
 
@@ -1271,33 +1577,33 @@ async function saveActiveConfigFile() {
     btnSave.disabled = true;
     btnSave.innerHTML = `💾 Saving...`;
     
+    const content = editor.value;
+    const storageKey = `config_file_${activeConfigFile}`;
+    localStorage.setItem(storageKey, content);
+    
+    if (activeConfigFile === "Name of the patient.csv") {
+        const parsedName = parsePatientNameFromCSV(content);
+        localStorage.setItem("patient_name", parsedName);
+        const titleElem = document.getElementById("patient-name-title");
+        if (titleElem) titleElem.textContent = parsedName;
+        document.title = `${parsedName} - Patient Care Log & Tracker`;
+    }
+    
     try {
-        const res = await fetch(`${API_BASE_URL}/api/config-file/${encodeURIComponent(activeConfigFile)}`, {
+        await fetch(`${API_BASE_URL}/api/config-file/${encodeURIComponent(activeConfigFile)}`, {
             method: "POST",
             headers: {
                 "Content-Type": "application/json"
             },
-            body: JSON.stringify({ content: editor.value })
+            body: JSON.stringify({ content: content })
         });
-        
-        if (!res.ok) {
-            const err = await res.json();
-            throw new Error(err.detail || "Save failed");
-        }
-        
-        showConfigStatus(`Successfully saved ${activeConfigFile}!`, "success");
-        
-        // Post-save actions based on what was edited:
-        if (activeConfigFile === "Name of the patient.csv") {
-            await fetchPatientName(); // Refresh UI patient name title
-        }
     } catch (e) {
-        console.error(e);
-        showConfigStatus(`Error saving: ${e.message}`, "error");
-    } finally {
-        btnSave.disabled = false;
-        btnSave.innerHTML = originalText;
+        console.warn("Backend save skipped/failed:", e);
     }
+    
+    showConfigStatus(`Successfully saved ${activeConfigFile}!`, "success");
+    btnSave.disabled = false;
+    btnSave.innerHTML = originalText;
 }
 
 function showConfigStatus(msg, type) {

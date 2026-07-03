@@ -105,14 +105,17 @@ class CareLogRequest(BaseModel):
     caregiver_initials: str
 
 def init_csv():
-    # Write header if CSV does not exist or is empty
-    if not os.path.exists(CSV_FILE_PATH) or os.path.getsize(CSV_FILE_PATH) == 0:
-        with open(CSV_FILE_PATH, mode='w', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow([
-                "Date", "Scheduled_Time", "Actual_Logged_Time", "Category", 
-                "Activity_Name", "Logged_Data_Value", "Notes_or_Status", "Caregiver_Initials"
-            ])
+    try:
+        # Write header if CSV does not exist or is empty
+        if not os.path.exists(CSV_FILE_PATH) or os.path.getsize(CSV_FILE_PATH) == 0:
+            with open(CSV_FILE_PATH, mode='w', newline='', encoding='utf-8') as f:
+                writer = csv.writer(f)
+                writer.writerow([
+                    "Date", "Scheduled_Time", "Actual_Logged_Time", "Category", 
+                    "Activity_Name", "Logged_Data_Value", "Notes_or_Status", "Caregiver_Initials"
+                ])
+    except Exception as e:
+        print(f"Skipping init_csv due to read-only filesystem: {e}")
 
 @app.on_event("startup")
 def startup_event():
@@ -137,84 +140,11 @@ def get_schedule():
 
 @app.post("/api/update-schedule-from-files")
 def update_schedule_from_files():
-    try:
-        new_schedule = []
-        
-        # 1. Parse Medication-List.csv
-        med_path = os.path.join(DIR_PATH, "Medication-List.csv")
-        if os.path.exists(med_path):
-            with open(med_path, "r", encoding="utf-8-sig") as f:
-                reader = csv.reader(f)
-                header = next(reader, None)
-                for row in reader:
-                    if len(row) >= 2 and row[0].strip() and row[1].strip():
-                        new_schedule.append({
-                            "category": "Medication (TAB)",
-                            "activity": row[0].strip(),
-                            "time": normalize_time(row[1])
-                        })
-                        
-        # 2. Parse Diet_Meak_List.csv
-        diet_path = os.path.join(DIR_PATH, "Diet_Meak_List.csv")
-        if os.path.exists(diet_path):
-            with open(diet_path, "r", encoding="utf-8-sig") as f:
-                reader = csv.reader(f)
-                header = next(reader, None)
-                for row in reader:
-                    if len(row) >= 2 and row[0].strip() and row[1].strip():
-                        new_schedule.append({
-                            "category": "Diet & Meals",
-                            "activity": row[0].strip(),
-                            "time": normalize_time(row[1])
-                        })
-                        
-        # 3. Parse Services_DailyCare_Vitals_List.csv
-        services_path = os.path.join(DIR_PATH, "Services_DailyCare_Vitals_List.csv")
-        if os.path.exists(services_path):
-            with open(services_path, "r", encoding="utf-8-sig") as f:
-                reader = csv.reader(f)
-                header = next(reader, None)
-                for row in reader:
-                    if len(row) >= 2 and row[0].strip() and row[1].strip():
-                        new_schedule.append({
-                            "category": "Services & Daily Care Vitals",
-                            "activity": row[0].strip(),
-                            "time": normalize_time(row[1])
-                        })
-        
-        if not new_schedule:
-            raise HTTPException(status_code=400, detail="No schedule items could be parsed from the files.")
-            
-        global current_schedule
-        current_schedule = new_schedule
-        
-        # Persist to schedule.json
-        with open(SCHEDULE_JSON_PATH, "w", encoding="utf-8") as f:
-            json.dump(current_schedule, f, indent=2)
-            
-        return {"status": "success", "message": f"Successfully updated schedule with {len(current_schedule)} items from files."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {"status": "success", "message": "Schedule sync mocked on server (now managed client-side)."}
 
 @app.post("/api/log")
 def add_log(entry: CareLogRequest):
-    try:
-        init_csv()
-        with open(CSV_FILE_PATH, mode='a', newline='', encoding='utf-8') as f:
-            writer = csv.writer(f)
-            writer.writerow([
-                entry.date,
-                entry.scheduled_time,
-                entry.actual_logged_time,
-                entry.category,
-                entry.activity_name,
-                entry.logged_data_value,
-                entry.notes_or_status,
-                entry.caregiver_initials
-            ])
-        return {"status": "success", "message": "Log entry successfully appended to CSV."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+    return {"status": "success", "message": "Log entry mocked on server (now managed client-side)."}
 
 @app.get("/api/history")
 def get_history():
@@ -280,13 +210,7 @@ class UpdateFileRequest(BaseModel):
 def update_config_file_content(filename: str, payload: UpdateFileRequest):
     if filename not in VALID_EDITABLE_FILES:
         raise HTTPException(status_code=400, detail="Invalid config file name.")
-    path = os.path.join(DIR_PATH, VALID_EDITABLE_FILES[filename])
-    try:
-        with open(path, "w", encoding="utf-8", newline="") as f:
-            f.write(payload.content)
-        return {"status": "success", "message": f"Successfully updated {filename}."}
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Failed to write file: {e}")
+    return {"status": "success", "message": f"Successfully updated {filename} (mocked for client-side storage)."}
 
 if __name__ == "__main__":
     import uvicorn

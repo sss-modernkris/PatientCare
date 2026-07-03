@@ -151,6 +151,14 @@ def verify_care_tracker():
         page.get_by_text("Caregiver History Logs").click()
         time.sleep(1.5)
         
+        # Download CSV file via UI download button
+        print("Clicking Download Daily CSV button...")
+        with page.expect_download() as download_info:
+            page.locator("#btn-download-csv-history").click()
+        download = download_info.value
+        download.save_as(csv_path)
+        print(f"Downloaded CSV logs saved to {csv_path}")
+        
         # 7. Click on "View Vitals Progress Plot" button
         print("Clicking View Vitals Progress Plot button...")
         page.locator("#btn-go-to-plot").click()

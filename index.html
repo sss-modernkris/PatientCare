@@ -21,7 +21,7 @@
                     <span class="patient-badge">ICU Care Mode</span>
                     <h1 id="patient-name-title">Sakkubhai</h1>
                     <p class="subtitle">Daily Nursing Record & Care tracker</p>
-                    <span class="version-label">v20260703-1</span>
+                    <span class="version-label">v20260703-2</span>
                 </div>
                 <!-- Caregiver initials configuration -->
                 <div class="caregiver-config card">
@@ -38,6 +38,12 @@
                 <div class="special-note-actions card">
                     <button id="btn-add-special-notes" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
                         <span class="note-icon">📝</span> Enter Special Notes
+                    </button>
+                </div>
+                <!-- Export Actions -->
+                <div class="export-actions card">
+                    <button id="btn-download-csv-header" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; background-color: #047857; color: white; border-color: #047857;">
+                        <span class="download-icon">📥</span> Download Daily CSV
                     </button>
                 </div>
             </div>
@@ -115,9 +121,14 @@
                         <h2>Patient Medical CSV Logs</h2>
                         <p class="subtitle">Complete historical logs exported to <code>daily_medical_logs.csv</code></p>
                     </div>
-                    <button id="btn-go-to-plot" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
-                        <span class="chart-icon">📊</span> View Vitals Progress Plot
-                    </button>
+                    <div style="display: flex; gap: 0.75rem;">
+                        <button id="btn-download-csv-history" class="btn btn-secondary" style="display: flex; align-items: center; gap: 0.5rem; background-color: #047857; color: white; border-color: #047857;">
+                            <span class="download-icon">📥</span> Download Daily CSV
+                        </button>
+                        <button id="btn-go-to-plot" class="btn btn-primary" style="display: flex; align-items: center; gap: 0.5rem;">
+                            <span class="chart-icon">📊</span> View Vitals Progress Plot
+                        </button>
+                    </div>
                 </div>
                 <div class="table-wrap card">
                     <table class="history-table">
@@ -473,6 +484,6 @@
 
     <!-- Notification Sound Synthesizer Element -->
     <div class="hidden-alert-trigger"></div>
-    <script src="app.js?v=20260703-1"></script>
+    <script src="app.js?v=20260703-2"></script>
 </body>
 </html>
